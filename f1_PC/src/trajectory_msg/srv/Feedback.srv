@@ -1,0 +1,5 @@
+bool succeeded
+float64 progress
+string car_id
+---
+bool received

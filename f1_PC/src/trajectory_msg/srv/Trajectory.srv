@@ -1,0 +1,11 @@
+float64[] path_t
+float64[] path_cx
+float64[] path_cy
+int32 path_k
+float64[] speed_t
+float64[] speed_c
+int32 speed_k
+float64 s_start 
+float64 s_end
+---
+bool received
