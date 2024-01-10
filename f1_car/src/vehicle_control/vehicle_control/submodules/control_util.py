@@ -74,7 +74,7 @@ class BaseController(Node):
         return False
 
     def execute_trajectory(self, trajectory_request, response):
-        print("ez szar")
+        
         path_t=np.array(trajectory_request.path_t)
         path_cx=np.array(trajectory_request.path_cx)
         path_cy=np.array(trajectory_request.path_cy)

@@ -8,6 +8,9 @@
   <license>TODO: License declaration</license>
 
   <test_depend>ament_copyright</test_depend>
+  <depend>drive_bridge_msg</depend>
+  <depend>trajectory_msg</depend>
+  <depend>vehicle_state_msgs</depend>
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>
   <test_depend>python3-pytest</test_depend>

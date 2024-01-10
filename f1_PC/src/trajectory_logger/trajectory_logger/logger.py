@@ -98,7 +98,7 @@ class state_client(Node):
             plt.savefig('foo.png')
         """
         trajectory.set_xdata(numpy.append(trajectory.get_xdata(), data.position_x))
-        trajectory.set_xdata(numpy.append(trajectory.get_ydata(), data.position_y))
+        trajectory.set_ydata(numpy.append(trajectory.get_ydata(), data.position_y))
         ax.relim()
         ax.autoscale_view()
         fig.canvas.draw()
@@ -107,7 +107,7 @@ class state_client(Node):
         
 def main():
     rclpy.init()
-    path=Path(np.load("/home/bodlaire/Desktop/traj_points.npy"))
+    #path=Path(np.load("/home/bodlaire/Desktop/traj_points.npy"))
     plt.draw()
     s_c = state_client()
     rclpy.spin(s_c)

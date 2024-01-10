@@ -1,4 +1,7 @@
-from setuptools import setup
+from setuptools import find_packages, setup
+from glob import glob
+import os
+
 
 package_name = 'trajectory_client'
 
@@ -10,7 +13,8 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-    ],
+        (os.path.join('share', package_name), glob('config/traj_points.npy')),
+        ],
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='bodlaire',

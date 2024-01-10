@@ -1,0 +1,8 @@
+crazy_vehicle_state_observer:
+  ros__parameters:
+    FREQUENCY: 60.0
+    MARKER_OFFSET: 0.0 #0.2225 # [m] OptiTrack RigidBody center-point from the Vehicle's CoM
+    MOCAP_EXTERNAL_TOPIC: "/aimotion_mocap_node/rigid_bodies/<id>/pose" # Specifies which topic the external mocap node publishes to. (only required if motion_tracking is set to external)
+    #MOCAP_EXTERNAL_TOPIC is not used in the current code 
+    POSE_TOPIC: /aimotion_mocap_node/rigid_bodies/JoeBushJr/pose
+    CUTOFF: 2.0

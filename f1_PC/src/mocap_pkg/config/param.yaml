@@ -1,6 +1,13 @@
 parameter_server:
-  ros__parameters:
-    #hostname: "192.168.1.10"
-    hostname: "192.168.2.141"
-    mocap_type: "optitrack"
-    vehicle_id_list: ["AI_car_01", "RC_car_02", "JoeBushJr"]
+ ros__parameters:
+  hostname: "192.168.2.141"
+  mocap_type: "optitrack"
+  vehicle_id_list: ["TestName", "JoeBushJr"]
+  JoeBushJr:
+   IP: "192.168.2.62"
+   Username: "f1tenth"
+   Password: "123456"
+  TestName:
+   IP: "192.168.2.60"
+   Username: "this_is_a_test"
+   Password: "template_password"

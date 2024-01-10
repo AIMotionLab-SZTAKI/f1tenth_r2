@@ -1,5 +1,4 @@
 import sys
-import motioncapture
 import asyncio
 from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QShortcut, QSlider, QPushButton
 from PyQt5.QtCore import Qt, QPoint
@@ -150,7 +149,7 @@ class MyApp(QWidget):
             msg.delta = float(+self.steering_angle)
             msg.d = 0.0
         self.node.command_pub.publish(msg)
-        print("Puslishing: ", msg.delta, " ", msg.d )
+        print("Pusblishing: ", msg.delta, " ", msg.d )
 
     def move_right(self):
 

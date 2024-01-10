@@ -4,21 +4,29 @@ from drive_bridge_msg.msg import InputValues
 from std_msgs.msg import Float64
 import yaml
 import os
+class LoaderNode(Node):
+    def __init__(self):
+        super().__init__("parameter_server")
 
+        
+        self.declare_parameters(
+            namespace= "",
+            parameters=[
+                ('car_id', rclpy.Parameter.Type.STRING),
+                ('drive_bridge.STEERING_GAINS', rclpy.Parameter.Type.DOUBLE_ARRAY),
+                ('drive_bridge.MOTOR_LIMIT', rclpy.Parameter.Type.DOUBLE)
+        
+            ]
+        )
+        
 class DriveBridge(Node):
     def __init__(self, car_id):
         super().__init__('drive_bridge')
-        self.declare_parameters(
-            namespace = '',
-            parameters = [
-                ('STEERING_GAINS', rclpy.Parameter.Type.DOUBLE_ARRAY),
-                ('MOTOR_LIMIT', rclpy.Parameter.Type.DOUBLE)
-            ]
-        )
+        loader = LoaderNode()
        
-        self.angle_offset=float(self.get_parameter('STEERING_GAINS').value[1])
-        self.angle_gain=float(self.get_parameter("STEERING_GAINS").value[0])
-        self.reference_limit=float(self.get_parameter("MOTOR_LIMIT").value)
+        self.angle_offset=float(loader.get_parameter('drive_bridge.STEERING_GAINS').value[1])
+        self.angle_gain=float(loader.get_parameter("drive_bridge.STEERING_GAINS").value[0])
+        self.reference_limit=float(loader.get_parameter("drive_bridge.MOTOR_LIMIT").value)
         
         #Create Publishers
         self.delta_pub = self.create_publisher(Float64, "commands/servo/position",1)

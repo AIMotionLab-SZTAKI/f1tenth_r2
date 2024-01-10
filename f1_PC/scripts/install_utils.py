@@ -51,7 +51,7 @@ def create_clients(IP_ADRESS, USERNAME, PASSWORD):
     """
     SSH_client=paramiko.SSHClient()
     SSH_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    SSH_client.connect(IP_ADRESS, username=USERNAME, password=PASSWORD)
+    SSH_client.connect(IP_ADRESS, username=USERNAME, password=PASSWORD, timeout=10)
 
     # get transport & open 
     transport=SSH_client.get_transport()

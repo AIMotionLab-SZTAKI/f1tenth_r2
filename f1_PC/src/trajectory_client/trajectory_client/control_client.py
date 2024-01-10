@@ -10,6 +10,9 @@ import numpy
 import matplotlib.pyplot as plt
 from std_msgs.msg import Float64MultiArray, Float64
 from vehicle_state_msgs.msg import VehicleStateStamped
+from ament_index_python.packages import get_package_share_directory
+import os
+traj_config = os.path.join(get_package_share_directory('trajectory_client'),  'traj_points.npy')
 fig, ax = plt.subplots(2)
 X_real = []
 Y_real = []
@@ -61,6 +64,7 @@ class Path:
         (self.X_ev,self.Y_ev)=splev(self.u, self.tck)
         ax[1].plot(self.X_ev,self.Y_ev)
         #print(par[-1])
+        print("close plot window to send trajectory...")
         plt.show()
         
 
@@ -87,8 +91,8 @@ class Path:
         [-1, -1],
         [0, 0],
     """
-path=Path(np.load("/home/bodlaire/Desktop/traj_points.npy"))
-
+#path=Path(np.load("/home/bodlaire/Desktop/traj_points.npy"))
+path=Path(np.load(traj_config))
 class trajectory_client(Node):
     def __init__(self):
         super().__init__('trajectory_client')
@@ -109,7 +113,7 @@ class trajectory_client(Node):
 
 
         msg_goal.speed_t = []
-        print(path.speed_tck)
+        #print(path.speed_tck)
         for i in range(len(path.speed_tck[0])):
             msg_goal.speed_t.append(float(path.speed_tck[0][i]))
         msg_goal.speed_c = []
@@ -139,7 +143,6 @@ class trajectory_client(Node):
         
         return response
 def main():
-    print('Hi from trajectory_client.')
     rclpy.init()
     t_client = trajectory_client() 
     rclpy.spin(t_client)

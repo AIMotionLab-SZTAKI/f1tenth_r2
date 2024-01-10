@@ -9,6 +9,7 @@ def generate_launch_description():
     control_config = os.path.join(get_package_share_directory('vehicle_control'), 'param.yaml')
     vesc_config = os.path.join(get_package_share_directory('vesc_driver'),'params','vesc_config.yaml')
     drivebridge_config = os.path.join(get_package_share_directory('drive_bridge'), 'param.yaml')
+    config = os.path.join(get_package_share_directory('param_server'), 'param.yaml')
     return LaunchDescription([
       DeclareLaunchArgument(
             name="config",
@@ -25,23 +26,23 @@ def generate_launch_description():
             package='vehicle_control',
             namespace='',
             executable='control',
-            parameters= [control_config],
+            parameters= [config],
             output = "screen",
             emulate_tty = True, #Comment this and the one before to get rid of the console prints
             #prefix = "xterm -e"
         ),
         Node(
-            package = "vehicle_state_observer",
-            executable = "optitrack_state_observer_node",
+            package = "crazy_observer",
+            executable = "vehicle_state_observer",
             output = "screen",
             emulate_tty = True, #Comment this and the one before to get rid of the console prints
-            parameters = [state_config],
+            parameters = [config],
             #prefix = "xterm -e"
         ),
         Node(
             package='drive_bridge',
             namespace='',
             executable='drive_bridge',
-            parameters= [drivebridge_config]
+            parameters= [config]
         )
     ])

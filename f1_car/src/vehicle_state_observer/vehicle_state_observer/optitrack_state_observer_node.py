@@ -203,10 +203,9 @@ class state_observer(Node):
 
         self.vx_filt = self.vx_filt + (self.alpha*(vx - self.vx_filt))
         self.vy_filt = self.vy_filt + (self.alpha*(vy - self.vy_filt))
-
 	    #self.vx_filt=(x-prev_x)/dt_
 	    #self.vy_filt=(y-prev_y)/dt_
-        # approximate yaw rate
+        # approximate yaw rateIn this software you have to define the rigidbodies corresponding to the vehicles, with unique ID-s, that are specified in the ```f1_PC/src/mocap_pkg/config/param.yaml``` file.
 
         omega = dfi/dt_
         self.omega_filt = self.omega_filt + (self.alpha*(omega-self.omega_filt))
