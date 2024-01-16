@@ -1,0 +1,7 @@
+PyQt5
+motioncapture
+numpy
+numpy
+pyqtgraph
+pyusb
+pyyaml
