@@ -61,7 +61,6 @@ def main():
     
     loader.destroy_node()
     controller=CombinedController(FREQUENCY=freq,projection_window=0.5, lateral_gains=lat_gains,longitudinal_gains=long_gains, projection_step=0.001, vehicle_id = car_id,look_ahead=0.04)
-    controller.vehicle_id = car_id
     rclpy.spin(controller)
 
 if __name__ == '__main__':

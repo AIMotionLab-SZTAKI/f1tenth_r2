@@ -1,9 +1,11 @@
+
 import numpy as np
 import math
 from scipy.interpolate import splev, splprep, splrep
 import scipy.interpolate
 import numpy
-import matplotlib.pyplot as plt
+from ament_index_python.packages import get_package_share_directory
+import os
 
 class Path:
     def __init__(
@@ -31,33 +33,21 @@ class Path:
         self.length = s[-1]
 
         par = np.linspace(0, self.length, 1001)
-        self.par = np.reshape(par, par.size)
+        par = np.reshape(par, par.size)
         self.tck, self.u, *rest = splprep([X, Y], k=2, s=0.1, u= par)
         x = np.array(par)
         y = np.ones(len(par))*0.8
         step = 0/len(par)
         for i in range(len(par)):
             y[i] += step*i
-
-
         #print(y)
         #ax[0].plot(self.x_points, self.y_points, "o")
 # Generate the spline representation
         self.speed_tck = splrep(x, y, k=1, s=0.1)  # k is the degree, s is the smoothing factor (0 for interpolation)
 # Evaluate the spline at the desired x-values
-        self.speed = splev(self.u, self.speed_tck)
-
-    def show(self):
-        fig, ax = plt.subplots(2)
-        fig.tight_layout(pad= 3)
-        #ax[0].set_ylim([-0.1, 0.1])
-        ax[0].plot(self.par, self.speed)
         
-        ax[0].set_title("Speed")
-        ax[1].set_title("Trajectory")
-        ax[0].set_xlabel("Distance [m]")
-        ax[0].set_ylabel("Speed")
+        self_speed_y = splev(self.u, self.speed_tck)
+        
         (self.X_ev,self.Y_ev)=splev(self.u, self.tck)
-        ax[1].plot(self.X_ev,self.Y_ev)
         #print(par[-1])
-        plt.show()
+        

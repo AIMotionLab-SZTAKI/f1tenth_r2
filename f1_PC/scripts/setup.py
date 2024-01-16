@@ -10,6 +10,8 @@ setup(name='crazymocap',
         'PyQt5',
         'pyyaml',
         'numpy',
-        'pyqtgraph'
+        'pyqtgraph',
+        'scipy',
+        'paramiko'
         ]
       )

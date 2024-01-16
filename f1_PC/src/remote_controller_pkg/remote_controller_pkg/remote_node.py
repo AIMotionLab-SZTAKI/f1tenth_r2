@@ -29,7 +29,7 @@ with open('employee_file2.csv', mode='w') as csv_file:
 class StateNote(Node):
     def __init__(self):
         super().__init__('remote_state_listener')
-        self.listener = self.create_subscription(VehicleStateStamped,'/state', self.state_listener_callback, 1)
+        self.listener = self.create_subscription(VehicleStateStamped,"/JoeBush1_state", self.state_listener_callback, 1)
         print('state_listener initialised')
         self.logging_status = False
         self.fieldnames = ['time_stamp_sec', 'position_x', 'position_y', 'heading_angle', 'velocity_x', 'velocity_y', 'omega', 'duty_cycle', 'delta', 'erpm']
@@ -69,7 +69,7 @@ class MocapSubscriber(Node):
 class ControlPublisher(Node):
     def __init__(self):
         super().__init__("control")
-        self.command_pub = self.create_publisher(InputValues, "/control",1)
+        self.command_pub = self.create_publisher(InputValues, "/JoeBush1_control",1)
         print("control node inicializalva")
 
 class MyApp(QWidget):

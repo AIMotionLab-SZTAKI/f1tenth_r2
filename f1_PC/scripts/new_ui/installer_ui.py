@@ -17,6 +17,9 @@ import sys
 import os
 import threading
 
+
+
+
 class Installer_window(QWidget):
     def __init__(self, vehicle_name):
         super().__init__()

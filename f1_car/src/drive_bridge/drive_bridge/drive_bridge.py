@@ -20,19 +20,20 @@ class LoaderNode(Node):
         )
         
 class DriveBridge(Node):
-    def __init__(self, car_id):
-        super().__init__('drive_bridge')
+    def __init__(self):
         loader = LoaderNode()
-       
+
         self.angle_offset=float(loader.get_parameter('drive_bridge.STEERING_GAINS').value[1])
         self.angle_gain=float(loader.get_parameter("drive_bridge.STEERING_GAINS").value[0])
         self.reference_limit=float(loader.get_parameter("drive_bridge.MOTOR_LIMIT").value)
-        
+        self.car_id = loader.get_parameter("car_id").value
+        super().__init__(self.car_id+ '_drive_bridge')
         #Create Publishers
         self.delta_pub = self.create_publisher(Float64, "commands/servo/position",1)
         self.duty_pub = self.create_publisher(Float64, "commands/motor/duty_cycle",1)
         self.emergency_shutdown = False
-    
+        self.create_subscription(topic=self.car_id+'_control',msg_type= InputValues, callback= self.send_commands,qos_profile=1)
+
     
     def clamp_d(self, d):
         if d<-self.reference_limit:
@@ -67,8 +68,7 @@ def main():
     print('Hi from drive_bridge.')
     rclpy.init()
     car_id = "JoeBushJr"
-    drive_bridge = DriveBridge(car_id)
-    drive_bridge.create_subscription(topic='control',msg_type= InputValues, callback= drive_bridge.send_commands,qos_profile=1)
+    drive_bridge = DriveBridge()
     rclpy.spin(drive_bridge)
     drive_bridge.shutdown()
     drive_bridge.destroy_node()

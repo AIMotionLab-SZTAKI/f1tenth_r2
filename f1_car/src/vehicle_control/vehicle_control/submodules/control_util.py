@@ -12,22 +12,22 @@ from rclpy.node import Node
 import matplotlib.pyplot as plt
 
 class BaseController(Node):
-    def __init__(self, FREQUENCY, ):
+    def __init__(self, FREQUENCY,car_id ):
         self.dt = 1.0/FREQUENCY
-        super().__init__('controller_node')
-        self.state_subscriber = self.create_subscription( VehicleStateStamped, 'state',self.state_callback, 1)
+        super().__init__(car_id+'_controller_node')
+        self.state_subscriber = self.create_subscription( VehicleStateStamped, car_id+'_state',self.state_callback, 1)
         self.enabled = False
-        self.vehicle_id = "car_id_not_set"
-        self.pub = self.create_publisher( InputValues,'control', 1)
-        self.controller_manager = self.create_service(SetBool, "controller_switch", self.controller_manager_callback)
+        self.vehicle_id = car_id
+        self.pub = self.create_publisher( InputValues,self.vehicle_id+'_control', 1)
+        self.controller_manager = self.create_service(SetBool, self.vehicle_id+"_controller_switch", self.controller_manager_callback)
         """
         self.trajectory_server = ActionServer(self, Trajectory,'execute_trajectory', self.execute_trajectory )
         self.action_feedback = Trajectory.Feedback()
         self.action_result = Trajectory.Result()
         self.current_state = VehicleStateStamped()
         """
-        self.trajectory_srv = self.create_service(Trajectory, "execute_trajectory", self.execute_trajectory)
-        self.feedback_client = self.create_client(Feedback, "vehicle_feedback")
+        self.trajectory_srv = self.create_service(Trajectory, self.vehicle_id+"_execute_trajectory", self.execute_trajectory)
+        self.feedback_client = self.create_client(Feedback, self.vehicle_id+"_vehicle_feedback")
         ##TODO: Have to create the client to send the progress of the car car and wether the execution is successful 
     def spin(self):
         rclpy.spin(self)

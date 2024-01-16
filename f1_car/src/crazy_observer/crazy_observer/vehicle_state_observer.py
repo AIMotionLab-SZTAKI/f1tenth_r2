@@ -36,14 +36,15 @@ class LoaderNode(Node):
 class CrazyObserver(Node):
     def get_param(self):
         loader = LoaderNode()
+        self.car_id = loader.get_parameter("car_id").value
         self.frequency = loader.get_parameter("crazy_observer.FREQUENCY").value
         self.cutoff = loader.get_parameter("crazy_observer.CUTOFF").value
         self.l_offs = loader.get_parameter("crazy_observer.MARKER_OFFSET").value
         self.dt=1.0/self.frequency
 
     def __init__(self, link_uri, filter_window):
-        super().__init__("crazy_vehicle_state_observer")
         self.get_param()
+        super().__init__(self.car_id+"_crazy_vehicle_state_observer")
         self.radio_receiver = RadioReciever(devid = 0)
 
         self.N=filter_window
@@ -78,7 +79,7 @@ class CrazyObserver(Node):
         self.delta=0.0
         self.ERPM=0.0
 
-        self.state_pub = self.create_publisher(VehicleStateStamped, 'state', 1)
+        self.state_pub = self.create_publisher(VehicleStateStamped, self.car_id+'_state', 1)
         
         self.core_sub = self.create_subscription(
         VescStateStamped,

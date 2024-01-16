@@ -14,7 +14,7 @@ from std_msgs.msg import Float64
 
 class CombinedController(BaseController):
     def __init__(self, FREQUENCY, lateral_gains, longitudinal_gains, projection_window, projection_step, vehicle_id,look_ahead=0):
-        super(CombinedController, self).__init__(FREQUENCY=FREQUENCY)
+        super(CombinedController, self).__init__(FREQUENCY=FREQUENCY, car_id= vehicle_id)
         
         # required params for feedback control
         self.projection_window=projection_window
