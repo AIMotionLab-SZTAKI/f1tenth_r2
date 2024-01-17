@@ -12,6 +12,7 @@ setup(name='crazymocap',
         'numpy',
         'pyqtgraph',
         'scipy',
-        'paramiko'
+        'paramiko',
+        'shutil'
         ]
       )

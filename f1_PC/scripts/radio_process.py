@@ -15,7 +15,6 @@ class Radio_Worker(QThread):
     #@pyqtSlot()
     def run(self):
         self.running = True
-        print("tunkolas")
         while self.running:
             self.streamer.send_pose()
 

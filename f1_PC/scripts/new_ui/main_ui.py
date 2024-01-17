@@ -7,7 +7,7 @@ import os
 import numpy as np
 import yaml
 import pyqtgraph as pg
-from trajectory_client import trajectory_client
+from trajectory_client import trajectory_node
 import rclpy
 from radio_process import Radio_Worker
 from trajectory_msg.srv import Trajectory, Feedback
@@ -288,7 +288,7 @@ class Window(QWidget):
 
 
 
-            self.vehicle_configs[v]["trajectory_client"] = trajectory_client(vehicle_name=v)
+            self.vehicle_configs[v]["trajectory_client"] = trajectory_node(vehicle_name=v)
 
 
 

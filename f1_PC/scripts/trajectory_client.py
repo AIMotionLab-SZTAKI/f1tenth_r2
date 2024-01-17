@@ -1,19 +1,33 @@
 from trajectory_msg.srv import Trajectory, Feedback
 from rclpy.node import Node
+from PyQt5.QtCore import QObject, QThread
+import rclpy
 
 
-
-
-
-
-class trajectory_client(Node):
+class trajectory_client_process(QThread):
     def __init__(self, vehicle_name):
+
+        super(trajectory_client_process, self).__init__()
+
+
+        self.node = trajectory_node(vehicle_name=vehicle_name)
+
+
+    def run(self):
+
+        rclpy.spin(self.node)
+
+class trajectory_node(Node):
+    def __init__(self, vehicle_name):
+
         super().__init__(vehicle_name+'_trajectory_client')
+
         self.trajectory_client = self.create_client(Trajectory, vehicle_name+'_execute_trajectory')
+        
+        
         self.progress_srv =  None#self.create_service(Feedback, vehicle_name+"_vehicle_feedback",self.feedback_callback )
         
         
-
     def send_request(self, path):
 
         request = Trajectory.Request()

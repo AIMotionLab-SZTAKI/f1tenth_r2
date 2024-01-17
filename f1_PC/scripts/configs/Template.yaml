@@ -1,7 +1,8 @@
 parameter_server:
   ros__parameters:
-    car_id: JoeBushJr
+    car_id: JoeBush1
     radio_channel: 100
+    devid: 0
     controller:
       FREQUENCY: 60.0
       LATERAL_CONTROL_GAINS:
