@@ -24,7 +24,6 @@ class trajectory_node(Node):
 
         self.trajectory_client = self.create_client(Trajectory, vehicle_name+'_execute_trajectory')
         
-        
         self.progress_srv =  None#self.create_service(Feedback, vehicle_name+"_vehicle_feedback",self.feedback_callback )
         
         
@@ -59,7 +58,8 @@ class trajectory_node(Node):
             if self.trajectory_client.wait_for_service(timeout_sec= 2) == False:
                 raise SystemError("Service is not running")
             self.future = self.trajectory_client.call_async(request)
-            print("Goal sent")
+
+
         #rclpy.spin_until_future_complete(self, self.future)
         #print(self.future.result().received)
         except Exception as error :

@@ -112,6 +112,11 @@ class CombinedController(BaseController):
 
         # get path data at projected reference
         ref_pos, s0, z0, v_ref, c=self.get_path_data(self.s)
+
+        if pow(position[0]-ref_pos[0],2)+ pow(position[1]-ref_pos[1],2) > pow(0.15,2):
+            print("x error: ", position[0]-ref_pos[0], " y error: ", position[1]-ref_pos[1])
+            print("self shutdown")
+            self.shutdown()
         # invert heading in case of backward motion
         if v_ref<0:
             phi+=np.pi
@@ -131,7 +136,11 @@ class CombinedController(BaseController):
 
         # lateral error
         z1=np.dot(position-ref_pos, z0)
-
+        """
+        if z1 > 0.2:
+            print("Lateral error-> self shutdown")
+            self.shutdown()
+        """
         # heading error
         theta_e=_normalize(phi-theta_p)
 

@@ -30,7 +30,7 @@ from PyQt5.QtWidgets import (
 
 )
 
-from installer_ui import Installer_window
+from installer_ui import Installer_window, Installer_Thread
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 import subprocess
 import shutil
@@ -46,7 +46,7 @@ class Window(QWidget):
         self.setWindowIcon(QIcon("icon.jpeg"))
         self.manual_enabled = False
         self.installer = None
-        self.setWindowTitle("Ultimate fleet manager")
+        self.setWindowTitle("F1tenth fleet manager")
 
         self.resize(800, 500)
 
@@ -59,11 +59,11 @@ class Window(QWidget):
 
 
         ##Variable declaration:
-        self.d_current = 0
+        
 
         self.controller_window = controller()
 
-        self.delta_current =0
+       
 
         self.selected_vehicle = None
 
@@ -132,19 +132,6 @@ class Window(QWidget):
         self.MANUAL_BUTTON.setMaximumWidth(80)
         self.MANUAL_BUTTON.setMinimumWidth(80)
 
-        self.DELTA_EDIT = QDoubleSpinBox()
-        self.DUTY_EDIT = QDoubleSpinBox()
-
-
-
-        self.DELTA_EDIT.setMaximum(0.4)
-        self.DELTA_EDIT.setMinimum(0)
-        self.DELTA_EDIT.setSingleStep(0.05)
-
-        self.DUTY_EDIT.setMaximum(0.2)
-        self.DUTY_EDIT.setMinimum(0)
-        self.DUTY_EDIT.setSingleStep(0.01)
-
 
         self.setMinimumWidth(800)
         self.setMaximumWidth(800)
@@ -196,12 +183,10 @@ class Window(QWidget):
 
     def emit_controler(self):
 
-        self.d_current=self.DUTY_EDIT.value()
-        self.delta_current=self.DELTA_EDIT.value()
 
         self.vehicle_configs[self.selected_vehicle]["remote_controller"].publish(
-            delta = float(self.delta_current)* self.controller_window.rot,
-              duty_cycle = float(self.d_current)* self.controller_window.forward)
+            delta = float(self.controller_window.rot),
+              duty_cycle = float(self.controller_window.forward))
 
     def manual_mode_change(self)->None:
         """
@@ -212,16 +197,17 @@ class Window(QWidget):
         if self.manual_enabled == True or self.selected_vehicle == None:
             self.manual_enabled = False
             self.MANUAL_BUTTON.setStyleSheet("background-color: red")
-            self.DELTA_EDIT.setParent(None)
-            self.DUTY_EDIT.setParent(None)
+            
+            self.EXUCUTE_BUTTON.setEnabled(True)
+               
+
             self.controller_window.close()
             self.timer.stop()
             
         else:
             
+            self.EXUCUTE_BUTTON.setDisabled(True)
             self.controller_window.show()
-            self.main_layout.addWidget(self.DELTA_EDIT, 5,0, alignment=Qt.AlignmentFlag.AlignCenter)
-            self.main_layout.addWidget(self.DUTY_EDIT, 5,0, alignment=Qt.AlignmentFlag.AlignRight)
             self.manual_enabled = True
             self.MANUAL_BUTTON.setStyleSheet("background-color: green")
             self.timer.start(int(1000/50))
@@ -460,12 +446,13 @@ class Window(QWidget):
         """
         if self.selected_vehicle == None:
             return
-        self.installer = Installer_window(self.selected_vehicle)
-
+        self.installer = Installer_Thread(self.selected_vehicle)
+        self.installer.start()
 
     def edit_progressbar(self, request, response):
         self.PROGRESSBAR.setValue(int(request.progress))
-
+        if request.succeeded == True:
+            self.PROGRESSBAR.setValue(100)
         response.received = True
         return response
         
@@ -540,7 +527,7 @@ class Window(QWidget):
 
 
         self.selected_vehicle =  v # only change selected_vehicle if not trying to turn on / off
-
+        self.controller_window.setWindowTitle(v+ " Remote controller")
 
         if self.selected_trajectory == None:
             self.TRAJECTORY_LABEL.setText("<trajectory> -> " + self.selected_vehicle)
@@ -598,9 +585,28 @@ class Window(QWidget):
             #Getting vehicle params
             vehicles = list(self.params["parameter_server"]["ros__parameters"]["vehicle_id_list"])
             for v in vehicles:
+                #Turning off radio & destroying ROS2 nodes
+                if self.vehicle_configs.__contains__(v):
+                    try:
+                        self.vehicle_configs[v]["radio"].stop()
+                        self.vehicle_configs[v]["radio"].streamer.close()
+                    except:
+                        pass
+
+                    try:
+                        self.vehicle_configs[v]["remote_controller"].destroy_node()
+                    except:
+                        pass
+                    try:
+                        self.vehicle_configs[v]["trajectory_client"].node.destroy_node()
+                        self.vehicle_configs[v]["trajectory_client"].trajectory_client.destroy()
+                    except:
+                        pass
+
+
                 self.vehicle_configs[v] = yaml.load(open( self.config_path + "/"+v+ ".yaml", "r"), Loader= yaml.FullLoader)
                 self.vehicle_configs[v]["active"] = False
-                self.vehicle_configs[v]["radio_thread"] = None
+                self.vehicle_configs[v]["radio"] = None
 
 
             self.load_vehicle_list()

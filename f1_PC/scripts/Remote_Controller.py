@@ -8,7 +8,7 @@ class ControlPublisher(Node):
     def __init__(self, vehicle_name:str):
         super().__init__(vehicle_name+"_remote_contoller")
         self.command_pub = self.create_publisher(InputValues, "/" + vehicle_name + "_control",1)
-
+        
 
     def publish(self, delta:float, duty_cycle: float):
 

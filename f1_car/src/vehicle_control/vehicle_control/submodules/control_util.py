@@ -26,6 +26,7 @@ class BaseController(Node):
         self.action_result = Trajectory.Result()
         self.current_state = VehicleStateStamped()
         """
+        self.current_state = VehicleStateStamped()
         self.trajectory_srv = self.create_service(Trajectory, self.vehicle_id+"_execute_trajectory", self.execute_trajectory)
         self.feedback_client = self.create_client(Feedback, self.vehicle_id+"_vehicle_feedback")
         ##TODO: Have to create the client to send the progress of the car car and wether the execution is successful 
@@ -166,7 +167,6 @@ class BaseController(Node):
         if self.enabled:
             self.enabled=False
             #self.action_result.success=False
-            self.trajectory_srv.destroy()
 
     
 def _clamp(value, bound):
