@@ -36,34 +36,29 @@ import subprocess
 import shutil
 
 from remote_window import controller
+
 class Window(QWidget):
 
     def __init__(self):
         super(Window, self).__init__()
         #self.installEventFilter(self)
-        super().__init__()
+        # super().__init__()
         rclpy.init() ## I love ROS2
         self.setWindowIcon(QIcon("icon.jpeg"))
-        self.manual_enabled = False
-        self.installer = None
         self.setWindowTitle("F1tenth fleet manager")
-
         self.resize(800, 500)
-
-        self.vehicle_configs = {}
-
         self.main_layout = QGridLayout(self)
-        
         self.setLayout(self.main_layout)
 
 
+        ##Variable declaration
 
-        ##Variable declaration:
-        
+        self.manual_enabled = False
+        self.installer = None
+
+        self.vehicle_configs = {}
 
         self.controller_window = controller()
-
-       
 
         self.selected_vehicle = None
 
@@ -78,12 +73,12 @@ class Window(QWidget):
         self.timer = QTimer()
         self.timer.setTimerType(Qt.PreciseTimer)
         self.timer.timeout.connect(self.emit_controler)
-        ##Widget declaration:
 
+        ##Widget declaration:
         self.CONFIG_PATH_LABEL = QLabel()
 
         self.CHANGE_CONFIG_PATH_BUTTON = QPushButton("Change")
-
+        
         self.PLOT_GRAPH = pg.PlotWidget()
 
         self.EXUCUTE_BUTTON = QPushButton("Execute")
@@ -174,12 +169,10 @@ class Window(QWidget):
         self.REMOVE_VEHICLE_BUTTON.clicked.connect(self.remove_vehicle)
 
         self.MANUAL_BUTTON.clicked.connect(self.manual_mode_change)
+ 
         ##Loading files:
         self.set_config_file() # This must be here because the function modifies the label text :(
     
-
-    
-
 
     def emit_controler(self):
 
@@ -574,14 +567,13 @@ class Window(QWidget):
         setting new config file and loading vehicle list and vehicle parameters
         """
 
-
         self.CONFIG_PATH_LABEL.setText("config path: " + self.config_path)
-
 
 
         try:
             with open(os.path.join(self.config_path, "param.yaml"), 'r') as config:
                 self.params = yaml.load(config, Loader= yaml.FullLoader)
+            
             #Getting vehicle params
             vehicles = list(self.params["parameter_server"]["ros__parameters"]["vehicle_id_list"])
             for v in vehicles:
@@ -608,14 +600,9 @@ class Window(QWidget):
                 self.vehicle_configs[v]["active"] = False
                 self.vehicle_configs[v]["radio"] = None
 
-
             self.load_vehicle_list()
 
-
             #Reading trajectories from the config folder:
-
-
-
             l = os.listdir(self.config_path)
             l = list(filter(lambda f: ".npy" in f, l)) #filtering file by .npy
 

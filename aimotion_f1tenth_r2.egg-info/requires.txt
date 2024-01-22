@@ -1,7 +1,7 @@
 PyQt5
-motioncapture
 numpy
 numpy
+paramiko
 pyqtgraph
-pyusb
 pyyaml
+scipy

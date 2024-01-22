@@ -1,6 +1,0 @@
-setup.py
-crazymocap.egg-info/PKG-INFO
-crazymocap.egg-info/SOURCES.txt
-crazymocap.egg-info/dependency_links.txt
-crazymocap.egg-info/requires.txt
-crazymocap.egg-info/top_level.txt

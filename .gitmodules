@@ -1,0 +1,6 @@
+[submodule "external_dependencies/aimotion_f1tenth_utils"]
+	path = external_dependencies/aimotion_f1tenth_utils
+	url = https://github.com/AIMotionLab-SZTAKI/aimotion_f1tenth_utils.git
+[submodule "external_dependencies/crazymocap"]
+	path = external_dependencies/crazymocap
+	url = https://github.com/AIMotionLab-SZTAKI/crazymocap.git
