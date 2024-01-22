@@ -1,2 +1,5 @@
 Saves/
 venv/
+*.egg-info
+.idea
+*__pycache__/

@@ -1,7 +1,0 @@
-PyQt5
-numpy
-numpy
-paramiko
-pyqtgraph
-pyyaml
-scipy
