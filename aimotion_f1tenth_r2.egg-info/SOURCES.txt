@@ -15,9 +15,6 @@ aimotion_fleet_manager/path.py
 aimotion_fleet_manager/radio_process.py
 aimotion_fleet_manager/radio_streamer.py
 aimotion_fleet_manager/remote_window.py
+aimotion_fleet_manager/ros_classes.py
 aimotion_fleet_manager/setup.py
 aimotion_fleet_manager/text_editor.py
-aimotion_fleet_manager/trajectory_client.py
-external_dependencies/aimotion_f1tenth_utils/setup.py
-external_dependencies/crazymocap/setup.py
-external_dependencies/crazymocap/test_rx_tx.py

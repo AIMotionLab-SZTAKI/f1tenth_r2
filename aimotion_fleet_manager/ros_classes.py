@@ -1,39 +1,80 @@
 from trajectory_msg.srv import Trajectory
 from vehicle_state_msgs.msg import VehicleStateStamped
-
+from datetime import datetime #log file is saved by time
 from rclpy.node import Node
 from PyQt5.QtCore import  QObject, QThread
 import rclpy
 import csv #used for logging
+import os
+import atexit
 
 class logger_node_process(QThread):
 
     def __init__(self, vehicle_name):
         super(logger_node_process, self).__init__()
-        self.node = trajectory_node(vehicle_name=vehicle_name) 
-        ##TODO
+        self.node = logger_node(vehicle_name=vehicle_name)
+        try:
+            atexit.unregister(self.destroy)
+        except:
+            pass # no method to remove
 
+        atexit.register(self.destroy)
+
+    def run(self):
+        rclpy.spin(self.node)
+    def destroy(self):
+        """
+        destroys current temp file 
+        """
+        try:
+            file_name = self.node.csv_file.name
+            os.remove(file_name)
+        except:
+            pass #No file to delete
 
 
 class logger_node(Node):
     def __init__(self, vehicle_name):
-        super().__init__(vehicle_name + "logger_node")
+        super().__init__(vehicle_name + "_logger_node")
+        self.vehicle_name = vehicle_name
         self.create_subscription(
             msg_type=VehicleStateStamped,
             topic= vehicle_name+ "_state",
-            callback= self.state_callback
+            callback= self.state_callback,
+            qos_profile=1
             )
         
-
         self.logging_status = False
-        
         self.fieldnames = ['time_stamp_sec', 'position_x', 'position_y', 'heading_angle', 'velocity_x', 'velocity_y', 'omega', 'duty_cycle', 'delta', 'erpm']
         
-        self.csv_file =  open('my_log.csv', mode='w')
         
+        now = datetime.now() # current date and time
+
+        self.csv_file =  open("logs/_temp_"+ vehicle_name +'.csv', mode='w') #opening the temporary file
+        
+
         self.writer = csv.DictWriter(self.csv_file, fieldnames= self.fieldnames)
         
         self.writer.writeheader()
+
+
+    def toggle_save(self):
+        """
+        Closes and saves the current csv_file and start a new
+        """
+
+        closed_file = self.csv_file.name
+        self.csv_file.close()
+
+        now = datetime.now()
+
+        os.rename(closed_file, "logs/"+self.vehicle_name + now.strftime("_%m_%d_%Y_%H_%M_%S")+'.csv')
+        
+        self.csv_file = open("logs/_temp_"+self.vehicle_name+ ".csv", mode='w') #opening the temporary file
+        
+        self.writer = csv.DictWriter(self.csv_file, fieldnames= self.fieldnames)
+        self.writer.writeheader()
+
 
     def state_callback(self, data):
         if self.logging_status == True: #implemented from the previous remote controller
@@ -73,6 +114,9 @@ class trajectory_client_process(QThread):
         rclpy.spin(self.node)
 
 class trajectory_node(Node):
+    """
+    Simple ROS2 node with a trajectory_client and an unset progress_srv service
+    """
     def __init__(self, vehicle_name):
 
         super().__init__(vehicle_name+'_trajectory_client')

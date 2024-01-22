@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import *
-from PyQt5.QtCore import Qt, QTimer, QEvent
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5 import QtCore
 from PyQt5.QtGui import *
 import sys
@@ -7,13 +7,12 @@ import os
 import numpy as np
 import yaml
 import pyqtgraph as pg
-from ros_classes import trajectory_node, trajectory_client_process
+from ros_classes import trajectory_client_process, logger_node_process
 import rclpy
 from radio_process import Radio_Worker
 from trajectory_msg.srv import Trajectory, Feedback
 from Remote_Controller import ControlPublisher
 from path import Path
-
 
 from PyQt5.QtWidgets import (
 
@@ -442,8 +441,18 @@ class Window(QWidget):
         self.installer.start()
 
     def edit_progressbar(self, request, response):
+
+        
+
+
         self.PROGRESSBAR.setValue(int(request.progress))
         if request.succeeded == True:
+
+            #If the vehicle succeeded then end the log file
+            vehicle_name = request.car_id
+            self.vehicle_configs[self.selected_vehicle]["logger_client"].logging_status = False
+            self.vehicle_configs[vehicle_name]["logger_client"].toggle_save()
+
             self.PROGRESSBAR.setValue(100)
         response.received = True
         return response
@@ -458,7 +467,8 @@ class Window(QWidget):
         data = np.load(os.path.join(self.config_path, self.TRAJECTORY_LIST.selectedItems()[0].text()))
 
         p = Path(data)
-
+        self.vehicle_configs[self.selected_vehicle]["logger_client"].toggle_save()
+        self.vehicle_configs[self.selected_vehicle]["logger_client"].logging_status = True
         self.vehicle_configs[self.selected_vehicle]["trajectory_client"].node.send_request(p)
 
 
@@ -537,9 +547,9 @@ class Window(QWidget):
 
         if self.selected_vehicle == None:
 
-            self.TRAJECTORY_LABEL.setText( self.selected_trajectory+" -> <vehicle>")
+            self.TRAJECTORY_LABEL.setText(self.selected_trajectory+" -> <vehicle>")
         else:
-            self.TRAJECTORY_LABEL.setText(   self.selected_trajectory+ " -> "+ self.selected_vehicle)
+            self.TRAJECTORY_LABEL.setText(self.selected_trajectory+ " -> "+ self.selected_vehicle)
 
 
         data = np.load(os.path.join(self.config_path, self.TRAJECTORY_LIST.selectedItems()[0].text()))
@@ -577,13 +587,14 @@ class Window(QWidget):
             vehicles = list(self.params["parameter_server"]["ros__parameters"]["vehicle_id_list"])
             for v in vehicles:
                 #Turning off radio & destroying ROS2 nodes
+                
                 if self.vehicle_configs.__contains__(v):
                     try:
                         self.vehicle_configs[v]["radio"].stop()
                         self.vehicle_configs[v]["radio"].streamer.close()
                     except:
                         pass
-
+                """
                     try:
                         self.vehicle_configs[v]["remote_controller"].destroy_node()
                     except:
@@ -593,7 +604,7 @@ class Window(QWidget):
                         self.vehicle_configs[v]["trajectory_client"].trajectory_client.destroy()
                     except:
                         pass
-                
+                """
 
                 rclpy.shutdown()
                 rclpy.init()
@@ -663,16 +674,25 @@ class Window(QWidget):
                 continue
 
         
-
+            #Creating a remote controller for every vehicle in the fleet:
             self.vehicle_configs[v]["remote_controller"] = ControlPublisher(vehicle_name= v)
 
-
+            #Creating trajectory clients for every vehicle in the fleet, and starting them:
             self.vehicle_configs[v]["trajectory_client"] = trajectory_client_process(vehicle_name=v)
+            
+            #Setting the callback for the trajectory node to show the progress on the progressbar
             self.vehicle_configs[v]["trajectory_client"].node.progress_srv =   self.vehicle_configs[v]["trajectory_client"].node.create_service(Feedback, v+"_vehicle_feedback",self.edit_progressbar)
-
+            
+            #Starting the thread:
             self.vehicle_configs[v]["trajectory_client"].start()
 
-            
+            #Creating the logger node processess for the vehicle and starting them:
+
+            self.vehicle_configs[v]["logger_client"] = logger_node_process(vehicle_name= v)
+            #self.vehicle_configs[v]["logger_client"].start()
+
+
+            #Some fancy stuff-> coloring the table and setting the texts of the cells
             self.VEHICLE_LIST.setItem(row,0, QTableWidgetItem(v))
             self.VEHICLE_LIST.setItem(row,1, QTableWidgetItem(str(self.vehicle_configs[v]["parameter_server"]["ros__parameters"]["radio_channel"])))   
             self.VEHICLE_LIST.setItem(row,2, QTableWidgetItem("OFF"))
