@@ -7,7 +7,7 @@ import os
 import numpy as np
 import yaml
 import pyqtgraph as pg
-from trajectory_client import trajectory_node, trajectory_client_process
+from ros_classes import trajectory_node, trajectory_client_process
 import rclpy
 from radio_process import Radio_Worker
 from trajectory_msg.srv import Trajectory, Feedback

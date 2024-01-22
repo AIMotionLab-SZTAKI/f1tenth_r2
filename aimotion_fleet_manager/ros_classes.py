@@ -1,10 +1,65 @@
-from trajectory_msg.srv import Trajectory, Feedback
+from trajectory_msg.srv import Trajectory
+from vehicle_state_msgs.msg import VehicleStateStamped
+
 from rclpy.node import Node
-from PyQt5.QtCore import QObject, QThread
+from PyQt5.QtCore import  QObject, QThread
 import rclpy
+import csv #used for logging
+
+class logger_node_process(QThread):
+
+    def __init__(self, vehicle_name):
+        super(logger_node_process, self).__init__()
+        self.node = trajectory_node(vehicle_name=vehicle_name) 
+        ##TODO
+
+
+
+class logger_node(Node):
+    def __init__(self, vehicle_name):
+        super().__init__(vehicle_name + "logger_node")
+        self.create_subscription(
+            msg_type=VehicleStateStamped,
+            topic= vehicle_name+ "_state",
+            callback= self.state_callback
+            )
+        
+
+        self.logging_status = False
+        
+        self.fieldnames = ['time_stamp_sec', 'position_x', 'position_y', 'heading_angle', 'velocity_x', 'velocity_y', 'omega', 'duty_cycle', 'delta', 'erpm']
+        
+        self.csv_file =  open('my_log.csv', mode='w')
+        
+        self.writer = csv.DictWriter(self.csv_file, fieldnames= self.fieldnames)
+        
+        self.writer.writeheader()
+
+    def state_callback(self, data):
+        if self.logging_status == True: #implemented from the previous remote controller
+
+            self.writer.writerow({
+                'time_stamp_sec':data.header.stamp.sec + data.header.stamp.nanosec/10**9,
+                'position_x': data.position_x,
+                'position_y': data.position_y,
+                'heading_angle': data.heading_angle,
+                'velocity_x': data.velocity_x,
+                'velocity_y': data.velocity_y,
+                'omega': data.omega,
+                'duty_cycle': data.duty_cycle,
+                'delta': data.delta,
+                'erpm': data.erpm
+                  })
+
+
 
 
 class trajectory_client_process(QThread):
+    """
+    Provides start() func to run async the rclpy.spin for a trajectory_node instance
+    """
+
+
     def __init__(self, vehicle_name):
 
         super(trajectory_client_process, self).__init__()
