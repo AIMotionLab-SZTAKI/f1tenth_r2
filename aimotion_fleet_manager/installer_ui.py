@@ -28,12 +28,14 @@ class Installer_Thread(QThread):
     def run(self):
         self.window = Installer_window(self.vehicle_name)
         self.window.show()
-        self.window.onboard_path = os.path.join(Path(os.getcwd()).parents[1], "f1_car")
-        #print(self.onboard_path)
-        self.window.edit_parameter_server()
+        self.window.onboard_path = os.path.join(Path(os.getcwd()).parents[0], "ros2/f1_car")
+        
+        self.window.edit_parameter_server() 
         host = self.window.params["IP"]
         username = self.window.params["Username"]
         password = self.window.params["Password"]
+
+
         try:
              
             self.window.output_rd.append("Trying to connect")
@@ -45,17 +47,16 @@ class Installer_Thread(QThread):
             return
         self.window.output_rd.append("Deleting existing workspace...")
         QApplication.processEvents()
-        _stdin, stdout, stderr = SSH_client.exec_command("rm -rf aimotion-f1tenth-system")
+        _stdin, stdout, stderr = SSH_client.exec_command("rm -rf aimotion-f1tenth-system") #removing previous package
         self.window.output_rd.append("Copying workspace onto vehicle...")
         QApplication.processEvents()
-        #SFTP_client.rmall("aimotion-f1tenth-system")
-        
+
+
+
         time.sleep(5)
         SFTP_client.mkdir("aimotion-f1tenth-system", ignore_existing=False)
         wd = Path(os.getcwd())
-#print(wd.parents[1])
-        self.path = os.path.join(wd.parents[1], "f1_car")
-        SFTP_client.put_dir(self.path, "aimotion-f1tenth-system")
+        SFTP_client.put_dir(self.window.onboard_path, "aimotion-f1tenth-system")
        
 
 
@@ -82,6 +83,10 @@ class Installer_Thread(QThread):
 
 
 class Installer_window(QWidget):
+    """
+    Installer window with a textbox to show the progress
+    """
+
     def __init__(self, vehicle_name):
         super().__init__()
         layout = QVBoxLayout()
@@ -89,66 +94,14 @@ class Installer_window(QWidget):
         self.output_rd = QTextBrowser()
         self.vehicle_name = vehicle_name
         layout.addWidget(self.output_rd)
-        config = open("configs/" +vehicle_name + "_login.yaml", 'r')
+        config = open(os.path.join(os.path.dirname(os.getcwd()),"configs/" +vehicle_name + "_login.yaml"), "r")
         self.params = yaml.load(config, Loader= yaml.FullLoader)
         self.onboard_path = None
         self.setMinimumWidth(300)
         self.setMinimumHeight(300)
         self.setWindowTitle(vehicle_name + " installation")
 
-        #self.t = threading.Thread(target= self.start_install)
-        #self.t.start()
-    """
-    def start_install(self):
-        self.onboard_path = os.path.join(Path(os.getcwd()).parents[1], "f1_car")
-        #print(self.onboard_path)
-        self.edit_parameter_server()
-        host = self.params["IP"]
-        username = self.params["Username"]
-        password = self.params["Password"]
-        try:    
-            self.output_rd.append("Trying to connect")
-            QApplication.processEvents()
-            SSH_client, SFTP_client = create_clients(host, username, password)
-        except Exception as error:
-            self.output_rd.append("Failed to connect")
-            QApplication.processEvents()
-            return
-        self.output_rd.append("Deleting existing workspace...")
-        QApplication.processEvents()
-        _stdin, stdout, stderr = SSH_client.exec_command("rm -rf aimotion-f1tenth-system")
-        self.output_rd.append("Copying workspace onto vehicle...")
-        QApplication.processEvents()
-        #SFTP_client.rmall("aimotion-f1tenth-system")
-        time.sleep(5)
-        SFTP_client.mkdir("aimotion-f1tenth-system", ignore_existing=False)
-        wd = Path(os.getcwd())
-#print(wd.parents[1])
-        self.path = os.path.join(wd.parents[1], "f1_car")
-        SFTP_client.put_dir(self.path, "aimotion-f1tenth-system")
-       
 
-
-        self.output_rd.append("Building ROS workspace...")
-        QApplication.processEvents()
-        _stdin, stdout, stderr = SSH_client.exec_command('bash --login -c "source /opt/ros/foxy/local_setup.bash ;cd aimotion-f1tenth-system/; colcon build"')
-        try:
-            for line in iter(stdout.readline, ""):
-                    self.output_rd.append(line)
-                    self.output_rd.verticalScrollBar().setValue(self.output_rd.verticalScrollBar().maximum())
-                    QApplication.processEvents()
-            if stdout.channel.recv_exit_status():
-                self.output_rd.append("Failed to build ROS workspace")
-                QApplication.processEvents()
-            else:
-                self.output_rd.append("Successfully installed aimotion-f1tenth-system on vehicle")
-                QApplication.processEvents()
-        except:
-            print("error while printing")
-            QApplication.processEvents()
-        SSH_client.close()
-        SFTP_client.close()
-    """
     def edit_parameter_server(self):
         remove_path = os.path.join(self.onboard_path, "src", "param_server", "config", "param.yaml")
         #print(remove_path)
@@ -157,5 +110,5 @@ class Installer_window(QWidget):
         except(Exception):
             pass
         #print(os.path.join(os.getcwd(), "configs",self.vehicle_name+".yaml" ))
-        shutil.copyfile(os.path.join(os.getcwd(), "configs",self.vehicle_name+".yaml" ), remove_path)
+        shutil.copyfile(os.path.join(os.path.dirname(os.getcwd()), "configs",self.vehicle_name+".yaml" ), remove_path)
         

@@ -12,7 +12,6 @@ import rclpy
 from radio_process import Radio_Worker
 from trajectory_msg.srv import Trajectory, Feedback
 from Remote_Controller import ControlPublisher
-
 from path import Path
 
 
@@ -62,7 +61,7 @@ class Window(QWidget):
 
         self.selected_vehicle = None
 
-        self.config_path = os.path.join(os.getcwd(), "configs")
+        self.config_path = os.path.join(os.path.dirname(os.getcwd()), "configs")
 
         self.params = None
 
@@ -594,7 +593,10 @@ class Window(QWidget):
                         self.vehicle_configs[v]["trajectory_client"].trajectory_client.destroy()
                     except:
                         pass
+                
 
+                rclpy.shutdown()
+                rclpy.init()
 
                 self.vehicle_configs[v] = yaml.load(open( self.config_path + "/"+v+ ".yaml", "r"), Loader= yaml.FullLoader)
                 self.vehicle_configs[v]["active"] = False
