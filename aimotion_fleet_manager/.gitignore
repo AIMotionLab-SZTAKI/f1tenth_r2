@@ -2,3 +2,4 @@ venv/
 old_scripts/
 logs/
 __pycache__/
+utils/__pycache__/

@@ -1,15 +1,12 @@
 import paramiko
 import os
-import install_utils 
-from install_utils import create_clients
+import utils.install_utils as install_utils 
+from utils.install_utils import create_clients
 import time
 from pathlib import Path
 import yaml
 import PyQt5
 from ament_index_python.packages import get_package_share_directory
-#host = "192.168.2.62"
-username = "f1tenth"
-password = "123456" ## This will be commented out !!!
 from PyQt5.QtWidgets import *
 import shutil
 

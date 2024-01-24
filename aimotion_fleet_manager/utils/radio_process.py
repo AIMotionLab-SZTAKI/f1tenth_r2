@@ -1,5 +1,5 @@
 from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot
-from radio_streamer import RadioStreamer
+from crazymocap.radio_streamer import RadioStreamer
 
 class Radio_Worker(QThread):
     def __init__(self, ip, channel, devid, obj_name):
@@ -12,7 +12,6 @@ class Radio_Worker(QThread):
     def stop(self):
         self.running = False
     
-    #@pyqtSlot()
     def run(self):
         self.running = True
         while self.running:

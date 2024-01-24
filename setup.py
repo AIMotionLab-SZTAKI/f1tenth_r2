@@ -11,4 +11,9 @@ setup(name='aimotion_f1tenth_r2',
         'pyqtgraph',
         'scipy',
         'paramiko',
-        ])
+        ],
+      entry_points={
+        'console_scripts': [
+            'fleet_manager = main_ui:main'
+        ]
+    })

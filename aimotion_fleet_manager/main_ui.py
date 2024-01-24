@@ -7,47 +7,49 @@ import os
 import numpy as np
 import yaml
 import pyqtgraph as pg
-from ros_classes import trajectory_client_process, logger_node_process
 import rclpy
-from radio_process import Radio_Worker
-from trajectory_msg.srv import Trajectory, Feedback
-from Remote_Controller import ControlPublisher
-from path import Path
-
 from PyQt5.QtWidgets import (
-
     QApplication,
     QFileDialog,
-    QDialog,
     QPushButton,
-
-    QVBoxLayout,
     QWidget,
     QGridLayout,
-    QDoubleSpinBox
-
 )
-
-from installer_ui import Installer_window, Installer_Thread
-from PyQt5.QtCore import QObject, QThread, pyqtSignal
 import subprocess
 import shutil
 
+
+
+from utils.radio_process import Radio_Worker
+from trajectory_msg.srv import Trajectory, Feedback
+from utils.Remote_Controller import ControlPublisher
+from utils.path import Path
+from utils.ros_classes import trajectory_client_process, logger_node_process
+
+
 from remote_window import controller
+from installer_ui import Installer_Thread
+
 
 class Window(QWidget):
 
     def __init__(self):
         super(Window, self).__init__()
-        #self.installEventFilter(self)
-        # super().__init__()
+
         rclpy.init() ## I love ROS2
-        self.setWindowIcon(QIcon("icon.jpeg"))
+
+        self.setWindowIcon(QIcon(os.path.dirname(os.getcwd())+"/images/icon.jpeg"))
         self.setWindowTitle("F1tenth fleet manager")
         self.resize(800, 500)
+
+        
         self.main_layout = QGridLayout(self)
         self.setLayout(self.main_layout)
 
+        ##Checking log folder existance:
+
+        if os.path.exists("logs/") == False:
+            os.mkdir("logs/")
 
         ##Variable declaration
 
@@ -62,21 +64,29 @@ class Window(QWidget):
 
         self.config_path = os.path.join(os.path.dirname(os.getcwd()), "configs")
 
-        self.params = None
+        with open(os.path.join(self.config_path, "param.yaml"), 'r') as config:
+                self.params = yaml.load(config, Loader= yaml.FullLoader)
+        
 
         self.selected_trajectory = None
 
-        self.server_ip = "192.168.2.141"
+        self.server_ip = self.params["server_ip"] #Set by the value in param.yaml
+
+        #Creating timer for the remote controller->timout: sends msg to the car throught the ros2 node
 
         self.timer = QTimer()
         self.timer.setTimerType(Qt.PreciseTimer)
         self.timer.timeout.connect(self.emit_controler)
 
         ##Widget declaration:
-        self.CONFIG_PATH_LABEL = QLabel()
+        self.CONFIG_PATH_LABEL = QLabel("config path: " + self.config_path)
 
         self.CHANGE_CONFIG_PATH_BUTTON = QPushButton("Change")
         
+        self.IP_LABEL = QLabel("Server: ")
+
+        self.IP_ADDRESS_TEXTBOX = QLineEdit(self.params["server_ip"])
+
         self.PLOT_GRAPH = pg.PlotWidget()
 
         self.EXUCUTE_BUTTON = QPushButton("Execute")
@@ -132,8 +142,13 @@ class Window(QWidget):
         self.setMaximumHeight(600)
 
         ##Addind widgets to layout  
-        self.main_layout.addWidget(self.CONFIG_PATH_LABEL, 0,0)
-        self.main_layout.addWidget(self.CHANGE_CONFIG_PATH_BUTTON, 0,1, alignment= QtCore.Qt.AlignmentFlag.AlignLeft)
+        self.main_layout.addWidget(self.CONFIG_PATH_LABEL, 0,0, alignment= QtCore.Qt.AlignmentFlag.AlignTop)
+        self.main_layout.addWidget(self.CHANGE_CONFIG_PATH_BUTTON, 0,1, alignment= QtCore.Qt.AlignmentFlag.AlignTop)
+
+        self.main_layout.addWidget(self.IP_ADDRESS_TEXTBOX, 0,0, alignment= QtCore.Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignRight)
+        self.main_layout.addWidget(self.IP_LABEL, 0,0, alignment= QtCore.Qt.AlignmentFlag.AlignBottom| Qt.AlignmentFlag.AlignLeft)
+
+
         self.main_layout.addWidget(self.VEHICLE_LIST, 1,0, 2,1)
         self.main_layout.addWidget(self.PARAM_EDIT_BUTTON, 1,1)
         self.main_layout.addWidget(self.RELOAD_PARAM_BUTTON, 2,1, 2,1, alignment= QtCore.Qt.AlignmentFlag.AlignTop)
@@ -167,10 +182,26 @@ class Window(QWidget):
         self.REMOVE_VEHICLE_BUTTON.clicked.connect(self.remove_vehicle)
 
         self.MANUAL_BUTTON.clicked.connect(self.manual_mode_change)
- 
+
+        self.IP_ADDRESS_TEXTBOX.textChanged.connect(self.ip_check)
+        
+        
         ##Loading files:
-        self.set_config_file() # This must be here because the function modifies the label text :(
+        #self.set_config_file() # This must be here because the function modifies the label text :(
     
+    def ip_check(self):
+        """
+        checks if the IP_ADDRESS_TEXTBOX value is set properly
+        """
+        address_text = self.IP_ADDRESS_TEXTBOX.text()
+        address_text = address_text.replace('.', "")
+        if address_text.isnumeric():
+            self.IP_ADDRESS_TEXTBOX.setStyleSheet("background-color: white")
+            self.server_ip = self.IP_ADDRESS_TEXTBOX.text()
+            self.RELOAD_PARAM_BUTTON.setEnabled(True)
+        else:
+            self.IP_ADDRESS_TEXTBOX.setStyleSheet("background-color: red")
+            self.RELOAD_PARAM_BUTTON.setDisabled(True)
 
     def emit_controler(self):
 
@@ -209,6 +240,8 @@ class Window(QWidget):
         Adds the additioal widgets to the UI with the right methods connected
         Arguments: None
         """
+
+
         self.main_layout.addWidget(self.TEXTBOX, 4,0, alignment= Qt.AlignmentFlag.AlignLeft)
         self.main_layout.addWidget(self.OK,4,0, alignment= Qt.AlignmentFlag.AlignCenter )
         self.main_layout.addWidget(self.CANCEL,4,0, alignment= Qt.AlignmentFlag.AlignRight )
@@ -229,6 +262,8 @@ class Window(QWidget):
         Checks wether the vehicle is in the fleet,
         if not than blocks OK button
         """
+
+
         vehicle_name= self.TEXTBOX.text()
 
 
@@ -250,11 +285,11 @@ class Window(QWidget):
         vehicle_name = self.TEXTBOX.text()
 
 
-        currentvehicles = list(self.params["parameter_server"]["ros__parameters"]["vehicle_id_list"])
+        currentvehicles = list(self.params["vehicle_id_list"])
         currentvehicles.remove(vehicle_name)
 
         #Saving the modified param.yaml
-        self.params["parameter_server"]["ros__parameters"]["vehicle_id_list"] = currentvehicles
+        self.params["vehicle_id_list"] = currentvehicles
         with open(os.path.join("configs", "param.yaml"), "w") as file:
             yaml.dump(self.params, file, default_flow_style= False)
             file.close()
@@ -348,7 +383,7 @@ class Window(QWidget):
 
         vehicle_name = self.TEXTBOX.text()
         
-        current_vehicles = list(self.params["parameter_server"]["ros__parameters"]["vehicle_id_list"])
+        current_vehicles = list(self.params["vehicle_id_list"])
 
         current_vehicles.append(vehicle_name) ##Adding new vehicle to the fleet list
 
@@ -377,18 +412,18 @@ class Window(QWidget):
         self.main_layout.addWidget(self.REMOVE_VEHICLE_BUTTON, 4,0, alignment= QtCore.Qt.AlignmentFlag.AlignTrailing)
 
         #Saving the new param.yaml for the UI
-        self.params["parameter_server"]["ros__parameters"]["vehicle_id_list"] =  current_vehicles
-        with open(os.path.join("configs", "param.yaml"), "w") as file:
+        self.params["vehicle_id_list"] =  current_vehicles
+        with open(os.path.join(self.config_path, "param.yaml"), "w") as file:
             yaml.dump(self.params, file, default_flow_style= False)
             file.close()
 
         #Saving the new parameter server with the adjusted vehicle id
-        with open("configs/"+vehicle_name +".yaml", "r") as file:
+        with open(self.config_path + "/" +vehicle_name +".yaml", "r") as file:
             t_params = yaml.load(file, Loader=yaml.FullLoader)
             t_params["parameter_server"]["ros__parameters"]["car_id"] = str(vehicle_name)
             
             file.close()
-            saver_file =  open("configs/"+vehicle_name +".yaml", "w")
+            saver_file =  open(self.config_path + "/" +vehicle_name +".yaml", "w")
             yaml.dump(t_params, saver_file, default_flow_style=False)
             saver_file.close()
 
@@ -464,7 +499,7 @@ class Window(QWidget):
             print("Select vehicle & trajectory")
             return
 
-        data = np.load(os.path.join(self.config_path, self.TRAJECTORY_LIST.selectedItems()[0].text()))
+        data = np.load(os.path.join(os.path.dirname(self.config_path), "trajectories", self.TRAJECTORY_LIST.selectedItems()[0].text()))
 
         p = Path(data)
         self.vehicle_configs[self.selected_vehicle]["logger_client"].toggle_save()
@@ -552,7 +587,7 @@ class Window(QWidget):
             self.TRAJECTORY_LABEL.setText(self.selected_trajectory+ " -> "+ self.selected_vehicle)
 
 
-        data = np.load(os.path.join(self.config_path, self.TRAJECTORY_LIST.selectedItems()[0].text()))
+        data = np.load(os.path.join(os.path.dirname(self.config_path),"trajectories", self.TRAJECTORY_LIST.selectedItems()[0].text()))
 
         self.PLOT_GRAPH.plot(data[:,0], data[:,1])
 
@@ -570,7 +605,7 @@ class Window(QWidget):
         if dlg.exec_():
             self.config_path = dlg.selectedFiles()[0]
         self.set_config_file()
-
+    
     def set_config_file(self):
         """
         setting new config file and loading vehicle list and vehicle parameters
@@ -584,7 +619,13 @@ class Window(QWidget):
                 self.params = yaml.load(config, Loader= yaml.FullLoader)
             
             #Getting vehicle params
-            vehicles = list(self.params["parameter_server"]["ros__parameters"]["vehicle_id_list"])
+            vehicles = list(self.params["vehicle_id_list"])
+            self.params["server_ip"] = self.server_ip 
+            self.IP_ADDRESS_TEXTBOX.setText(self.server_ip)
+            with open(os.path.join(self.config_path, "param.yaml"), "w") as file:
+                yaml.dump(self.params, file, default_flow_style= False)
+                file.close()
+
             for v in vehicles:
                 #Turning off radio & destroying ROS2 nodes
                 
@@ -594,17 +635,6 @@ class Window(QWidget):
                         self.vehicle_configs[v]["radio"].streamer.close()
                     except:
                         pass
-                """
-                    try:
-                        self.vehicle_configs[v]["remote_controller"].destroy_node()
-                    except:
-                        pass
-                    try:
-                        self.vehicle_configs[v]["trajectory_client"].node.destroy_node()
-                        self.vehicle_configs[v]["trajectory_client"].trajectory_client.destroy()
-                    except:
-                        pass
-                """
 
                 rclpy.shutdown()
                 rclpy.init()
@@ -616,7 +646,7 @@ class Window(QWidget):
             self.load_vehicle_list()
 
             #Reading trajectories from the config folder:
-            l = os.listdir(self.config_path)
+            l = os.listdir(os.path.join(os.path.dirname(os.getcwd()), "trajectories"))
             l = list(filter(lambda f: ".npy" in f, l)) #filtering file by .npy
 
 
@@ -642,7 +672,7 @@ class Window(QWidget):
 
 
         #Getting all the vehicle names in the fleet:
-        vehicles = list(self.params["parameter_server"]["ros__parameters"]["vehicle_id_list"])
+        vehicles = list(self.params["vehicle_id_list"])
 
 
 
@@ -702,8 +732,7 @@ class Window(QWidget):
             row+= 1
             i+=1
 
-if __name__ == "__main__":
-
+def main():
     app = QApplication(sys.argv)
 
     window = Window()
@@ -711,3 +740,8 @@ if __name__ == "__main__":
     window.show()
 
     sys.exit(app.exec_())
+
+
+
+if __name__ == "__main__":
+    main()
