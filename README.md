@@ -1,13 +1,13 @@
 # f1tenth ros2
 
-Control and simulation framework for a fleet of F1TENTH vehilces. The main purpose of the software is to provide:
+Contorl and management framework for a fleet of F1TENTh vehicles. The main purpose of the software is to provide:
 
 - Low-level hardware interfaces running onboard the vehicles
 - OptiTrack motion-capture integration for indoor positioning
-- Mocap-based state estimation
+- Mocap-based state estimation a
 - Integrated trajectory-tracking control algorithms
 
-## Table of contents
+## Documentation
 
 - [Hardware architecture](/table_of_contents/hardware_architecture.md)
 
