@@ -19,26 +19,25 @@ import subprocess
 import shutil
 
 
+from .remote_window import controller
+from .installer_ui import Installer_Thread
 
-from utils.radio_process import Radio_Worker
+from .utils.radio_process import Radio_Worker
 from trajectory_msg.srv import Trajectory, Feedback
-from utils.Remote_Controller import ControlPublisher
-from utils.path import Path
-from utils.ros_classes import trajectory_client_process, logger_node_process
+from .utils.Remote_Controller import ControlPublisher
+from .utils.path import Path
+from .utils.ros_classes import trajectory_client_process, logger_node_process
 
 
-from remote_window import controller
-from installer_ui import Installer_Thread
 
 
 class Window(QWidget):
 
     def __init__(self):
         super(Window, self).__init__()
-
         rclpy.init() ## I love ROS2
 
-        self.setWindowIcon(QIcon(os.path.dirname(os.getcwd())+"/images/icon.jpeg"))
+        self.setWindowIcon(QIcon(os.path.dirname(__file__)+"/images/icon.jpeg"))
         self.setWindowTitle("F1tenth fleet manager")
         self.resize(800, 500)
 
@@ -62,7 +61,7 @@ class Window(QWidget):
 
         self.selected_vehicle = None
 
-        self.config_path = os.path.join(os.path.dirname(os.getcwd()), "configs")
+        self.config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "configs")
 
         with open(os.path.join(self.config_path, "param.yaml"), 'r') as config:
                 self.params = yaml.load(config, Loader= yaml.FullLoader)
@@ -388,8 +387,8 @@ class Window(QWidget):
         current_vehicles.append(vehicle_name) ##Adding new vehicle to the fleet list
 
         ##Creating the parameter server yaml & login yaml for the new vehicle in the configs folder:
-        shutil.copy(os.path.join(os.getcwd(), "configs", "Template.yaml"), os.path.join(os.getcwd(), "configs",  vehicle_name +".yaml"))
-        shutil.copy(os.path.join(os.getcwd(), "configs", "Template_login.yaml"), os.path.join(os.getcwd(), "configs",  vehicle_name +"_login.yaml"))
+        shutil.copy(os.path.join(os.path.dirname(__file__), "configs", "Template.yaml"), os.path.join(os.path.dirname(__file__), "configs",  vehicle_name +".yaml"))
+        shutil.copy(os.path.join(os.path.dirname(__file__), "configs", "Template_login.yaml"), os.path.join(os.path.dirname(__file__), "configs",  vehicle_name +"_login.yaml"))
 
 
         #Removing OK, TEXTBOX, CANCEL button from the UI
@@ -646,7 +645,7 @@ class Window(QWidget):
             self.load_vehicle_list()
 
             #Reading trajectories from the config folder:
-            l = os.listdir(os.path.join(os.path.dirname(os.getcwd()), "trajectories"))
+            l = os.listdir(os.path.join(os.path.dirname(os.path.dirname(__file__)), "trajectories"))
             l = list(filter(lambda f: ".npy" in f, l)) #filtering file by .npy
 
 

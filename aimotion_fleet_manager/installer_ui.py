@@ -1,7 +1,6 @@
 import paramiko
 import os
-import utils.install_utils as install_utils 
-from utils.install_utils import create_clients
+from .utils.install_utils import create_clients
 import time
 from pathlib import Path
 import yaml
@@ -25,7 +24,7 @@ class Installer_Thread(QThread):
     def run(self):
         self.window = Installer_window(self.vehicle_name)
         self.window.show()
-        self.window.onboard_path = os.path.join(Path(os.getcwd()).parents[0], "ros2/f1_car")
+        self.window.onboard_path = os.path.join(Path(os.path.dirname(__file__)).parents[0], "ros2/f1_car")
         
         self.window.edit_parameter_server() 
         host = self.window.params["IP"]
@@ -52,7 +51,7 @@ class Installer_Thread(QThread):
 
         time.sleep(5)
         SFTP_client.mkdir("aimotion-f1tenth-system", ignore_existing=False)
-        wd = Path(os.getcwd())
+        wd = Path(os.path.dirname(__file__))
         SFTP_client.put_dir(self.window.onboard_path, "aimotion-f1tenth-system")
        
 
@@ -91,7 +90,7 @@ class Installer_window(QWidget):
         self.output_rd = QTextBrowser()
         self.vehicle_name = vehicle_name
         layout.addWidget(self.output_rd)
-        config = open(os.path.join(os.path.dirname(os.getcwd()),"configs/" +vehicle_name + "_login.yaml"), "r")
+        config = open(os.path.join(os.path.dirname(os.path.dirname(__file__)),"configs/" +vehicle_name + "_login.yaml"), "r")
         self.params = yaml.load(config, Loader= yaml.FullLoader)
         self.onboard_path = None
         self.setMinimumWidth(300)
@@ -106,6 +105,6 @@ class Installer_window(QWidget):
             os.remove(remove_path)
         except(Exception):
             pass
-        #print(os.path.join(os.getcwd(), "configs",self.vehicle_name+".yaml" ))
-        shutil.copyfile(os.path.join(os.path.dirname(os.getcwd()), "configs",self.vehicle_name+".yaml" ), remove_path)
+        #print(os.path.join(os.path.dirname(__file__), "configs",self.vehicle_name+".yaml" ))
+        shutil.copyfile(os.path.join(os.path.dirname(os.path.dirname(__file__)), "configs",self.vehicle_name+".yaml" ), remove_path)
         
