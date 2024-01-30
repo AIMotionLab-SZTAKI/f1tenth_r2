@@ -33,9 +33,7 @@ class ROS_2_process(QThread):
         self.node.toggle_save()
 
     def stop(self):
-        print("Calling shutdown")
         self.executor.shutdown()
-        print("Shutdown complete")
     def run(self):
         
         try:

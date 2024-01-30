@@ -966,7 +966,7 @@ class Window(QWidget):
                 file.close()
 
         
-            self.vehicle_configs = {}
+            
           
 
             for v in vehicles:
@@ -982,10 +982,14 @@ class Window(QWidget):
                         self.vehicle_configs[v]["ROS2"].stop()
                         self.vehicle_configs[v]["ROS2"].executor.shutdown()
                         self.vehicle_configs[v]["ROS2"].executor.remove_node(self.vehicle_configs[v]["ROS2"].node)
+                        self.vehicle_configs[v]["remote_controller"].destroy_node()
+                        self.vehicle_configs[v]["ROS2"].node.destroy_node()
                     except Exception as e:
                         self.logger.error(e)
                 rclpy.shutdown()
                 rclpy.init()
+                
+
 
                 self.vehicle_configs[v] = yaml.load(open( self.config_path + "/"+v+ ".yaml", "r"), Loader= yaml.FullLoader)
                 self.vehicle_configs[v]["active"] = False
