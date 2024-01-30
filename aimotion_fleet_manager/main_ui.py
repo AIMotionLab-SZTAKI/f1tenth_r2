@@ -591,10 +591,12 @@ class Window(QWidget):
 
         vehicle_name = self.TEXTBOX.text()
 
+        #Destroying the ROS2 nodes (idk why but killing their executors isn't enough, so we go try hard)
+        self.vehicle_configs[vehicle_name]["remote_controller"].destroy_node()
+        self.vehicle_configs[vehicle_name]["ROS2"].node.destroy_node()
 
         currentvehicles = list(self.params["vehicle_id_list"])
         currentvehicles.remove(vehicle_name)
-
         #Saving the modified param.yaml
         self.params["vehicle_id_list"] = currentvehicles
         with open(os.path.join("configs", "param.yaml"), "w") as file:
@@ -634,7 +636,6 @@ class Window(QWidget):
 
 
 
-
     
     def cancel_remove_vehicle(self)->None:
         """
@@ -660,7 +661,6 @@ class Window(QWidget):
 
         self.main_layout.addWidget(self.ADD_VEHICLE_BUTTON, 4,0, alignment= QtCore.Qt.AlignmentFlag.AlignLeading)
         self.main_layout.addWidget(self.REMOVE_VEHICLE_BUTTON, 4,0, alignment= QtCore.Qt.AlignmentFlag.AlignTrailing)
-
 
 
 
@@ -734,7 +734,6 @@ class Window(QWidget):
             yaml.dump(t_params, saver_file, default_flow_style=False)
             saver_file.close()
 
-
     def cancel_new_vehicle(self):
         """
         Cancel the adding process and restores the UI to the base view
@@ -759,7 +758,7 @@ class Window(QWidget):
 
         self.main_layout.addWidget(self.ADD_VEHICLE_BUTTON, 4,0, alignment= QtCore.Qt.AlignmentFlag.AlignLeading)
         self.main_layout.addWidget(self.REMOVE_VEHICLE_BUTTON, 4,0, alignment= QtCore.Qt.AlignmentFlag.AlignTrailing)
-
+        
     def vehicle_add_block(self)->None:
         """
         Checks wether the vehicle is already in the fleet
@@ -966,6 +965,10 @@ class Window(QWidget):
                 yaml.dump(self.params, file, default_flow_style= False)
                 file.close()
 
+        
+            self.vehicle_configs = {}
+          
+
             for v in vehicles:
                 #Turning off radio & destroying ROS2 nodes
                 
@@ -975,7 +978,12 @@ class Window(QWidget):
                         self.vehicle_configs[v]["radio"].streamer.close()
                     except:
                         pass
-
+                    try:
+                        self.vehicle_configs[v]["ROS2"].stop()
+                        self.vehicle_configs[v]["ROS2"].executor.shutdown()
+                        self.vehicle_configs[v]["ROS2"].executor.remove_node(self.vehicle_configs[v]["ROS2"].node)
+                    except Exception as e:
+                        self.logger.error(e)
                 rclpy.shutdown()
                 rclpy.init()
 

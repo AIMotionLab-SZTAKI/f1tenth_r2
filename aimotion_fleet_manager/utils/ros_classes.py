@@ -10,6 +10,8 @@ import atexit
 import numpy as np
 from scipy.interpolate import splev, splint
 
+from rclpy.executors import SingleThreadedExecutor
+
 from pathlib import Path
 class ROS_2_process(QThread):
     """
@@ -21,18 +23,26 @@ class ROS_2_process(QThread):
 
         super(ROS_2_process, self).__init__()
 
-
         self.node = ROS2_node(vehicle_name=vehicle_name)
-
+        self.executor = SingleThreadedExecutor()
+        
+        self.executor.add_node(self.node)
 
 
     def toggle_save(self):
         self.node.toggle_save()
 
-
+    def stop(self):
+        print("Calling shutdown")
+        self.executor.shutdown()
+        print("Shutdown complete")
     def run(self):
-
-        rclpy.spin(self.node)
+        
+        try:
+            self.executor.spin()
+        except: #In case of shutdown / reload this would give an error
+            pass
+        
 
 class ROS2_node(Node):
     """
