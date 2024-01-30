@@ -9,11 +9,11 @@ Contorl and management framework for a fleet of F1TENTh vehicles. The main purpo
 
 ## Documentation
 
-- [Hardware architecture](/table_of_contents/hardware_architecture.md)
+- [Hardware architecture](/docs/hardware_architecture.md)
 
-- [Software installation and setup instructions](/table_of_contents/software_installation_new.md)
+- [Software installation and setup instructions](/docs/software_installation_new.md)
 
 <!--- - [Working with the F1TENTH vehicles](/table_of_contents/working_with_vehicles.md)
 --->
 
-- [F1TENTH modeling and control](/table_of_contents/modelling.md)
+- [F1TENTH modeling and control](/docs/modelling.md)
