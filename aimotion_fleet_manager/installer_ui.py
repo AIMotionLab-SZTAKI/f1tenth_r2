@@ -1,6 +1,6 @@
 import paramiko
 import os
-from .utils.install_utils import create_clients
+from aimotion_fleet_manager.utils.install_utils import create_clients
 import time
 from pathlib import Path
 import yaml
@@ -25,7 +25,6 @@ class Installer_Thread(QThread):
         self.window = Installer_window(self.vehicle_name)
         self.window.show()
         self.window.onboard_path = os.path.join(Path(os.path.dirname(__file__)).parents[0], "ros2/f1_car")
-        
         self.window.edit_parameter_server() 
         host = self.window.params["IP"]
         username = self.window.params["Username"]

@@ -17,19 +17,26 @@ from PyQt5.QtWidgets import (
 )
 import subprocess
 import shutil
+import pickle
+from scipy.interpolate import splev
 
+from aimotion_fleet_manager.remote_window import controller
+from aimotion_fleet_manager.installer_ui import Installer_Thread
 
-from .remote_window import controller
-from .installer_ui import Installer_Thread
-
-from .utils.radio_process import Radio_Worker
+from aimotion_fleet_manager.utils.radio_process import Radio_Worker
 from trajectory_msg.srv import Trajectory, Feedback
-from .utils.Remote_Controller import ControlPublisher
-from .utils.path import Path
-from .utils.ros_classes import trajectory_client_process, logger_node_process
+from aimotion_fleet_manager.utils.Remote_Controller import ControlPublisher
+from aimotion_fleet_manager.utils.path import Path
+from aimotion_fleet_manager.utils.ros_classes import ROS_2_process
+from aimotion_fleet_manager.utils.TCP_process import TCP_Server_process
+from aimotion_fleet_manager.utils.path import Path
+from aimotion_fleet_manager.utils.ip_tool import get_ip_address
 
+from aimotion_f1tenth_utils.file_transfer.Client import tcp_file_client
+import logging
 
-
+import time
+import atexit
 
 class Window(QWidget):
 
@@ -45,10 +52,40 @@ class Window(QWidget):
         self.main_layout = QGridLayout(self)
         self.setLayout(self.main_layout)
 
-        ##Checking log folder existance:
 
-        if os.path.exists("logs/") == False:
-            os.mkdir("logs/")
+        ##Creating logger
+
+        self.logger = logging.getLogger(__name__)
+
+        # Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+        self.logger.setLevel(logging.DEBUG)
+
+        # Create a formatter
+        formatter = logging.Formatter('[%(module)s] - %(levelname)s : %(message)s')
+
+        # Create a console handler and set the formatter
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(formatter)
+
+        # Add the console handler to the logger
+        self.logger.addHandler(console_handler)
+
+
+
+
+
+        
+        ## Creating TCP Server:
+
+        self.logger.info(get_ip_address())
+        self.TCP = TCP_Server_process(host= get_ip_address(),
+                                      port = 8001,
+                                      message_callback= self.tcp_callback)
+        self.TCP.start()
+        self.logger.info("TCP server started")
+
+        atexit.register(self.TCP.tcp_server.stop) ##Making sure that the connection is closed before ending process
+        #atexit.register(self.TCP.tcp_server.server_socket.close) ##TODO not working!!!
 
         ##Variable declaration
 
@@ -62,6 +99,16 @@ class Window(QWidget):
         self.selected_vehicle = None
 
         self.config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "configs")
+
+        ##Checking log folder existance:
+
+        if os.path.exists(os.path.join(os.path.dirname(os.path.dirname(__file__)),"logs/")) == False:
+
+            os.mkdir(os.path.join(os.path.dirname(os.path.dirname(__file__)),"logs/"))
+
+        if os.path.exists(os.path.join(os.path.dirname(os.path.dirname(__file__)), "trajectories")) == False:
+            os.mkdir(os.path.join(os.path.dirname(os.path.dirname(__file__)), "trajectories"))
+        
 
         with open(os.path.join(self.config_path, "param.yaml"), 'r') as config:
                 self.params = yaml.load(config, Loader= yaml.FullLoader)
@@ -135,6 +182,9 @@ class Window(QWidget):
         self.MANUAL_BUTTON.setMinimumWidth(80)
 
 
+        self.TOGGLE_SAVE = QPushButton("Toggle save")
+
+
         self.setMinimumWidth(800)
         self.setMaximumWidth(800)
         self.setMinimumHeight(600)
@@ -160,9 +210,11 @@ class Window(QWidget):
         self.main_layout.addWidget(self.EXUCUTE_BUTTON, 4,3)
         self.main_layout.addWidget(self.PROGRESSBAR, 5,2, 5,3)
         self.main_layout.addWidget(self.MANUAL_BUTTON, 5,0, alignment= Qt.AlignmentFlag.AlignLeft)
-        
+        self.main_layout.addWidget(self.TOGGLE_SAVE, 3,1 )
 
         ##Connecting Widgets to functions:
+
+        self.TOGGLE_SAVE.clicked.connect(self.toggle_save)
 
         self.CHANGE_CONFIG_PATH_BUTTON.clicked.connect(self.config_chooser)
 
@@ -187,7 +239,263 @@ class Window(QWidget):
         
         ##Loading files:
         #self.set_config_file() # This must be here because the function modifies the label text :(
-    
+        
+
+    def toggle_save(self):
+        if self.selected_vehicle == None:
+            return
+        self.vehicle_configs[self.selected_vehicle]["ROS2"].toggle_save()
+
+    def tcp_callback(self, message):
+        #self.logger.info( message)
+        match message["command"]:
+        # vehicle verification
+            
+            case "get_logs":
+
+                car_ID = message["car_ID"]
+                ip_address = str(message["IP"])
+
+                file_client = tcp_file_client(ip_address)
+
+                #Getting log files
+                l = os.listdir(os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs/"))
+                l = list(filter(lambda f: car_ID in f, l)) #filtering files by vehicle_ID
+                l_1 = []
+                for i in l:
+                    i = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs/", i))
+                    if i.__contains__("_temp"): continue
+                    l_1.append(i)
+
+                file_client.sendfiles(l_1)
+                file_client.destroy()
+
+
+
+
+
+
+                #return {"status": False}
+            
+            case "list_trajectories":
+                response= {"status": True
+                    ,"trajectories": list()}
+                
+                response["trajectories"] = list(self.TRAJECTORY_LIST.item(i).text() for i in range(self.TRAJECTORY_LIST.count()))
+                
+                return response
+
+
+            
+            case "reload":
+                self.set_config_file()
+                return{"status": True}
+            
+
+
+            case "verify_vehicle":
+                if message["car_ID"] in self.vehicle_configs.keys():
+                    message["status"] = True
+                else:
+                    message["status"] = False
+                return message
+            case "new_log":
+
+                vehicle_id = message["car_ID"]
+
+                self.vehicle_configs[vehicle_id]["ROS2"].logging_status = False
+
+                self.vehicle_configs[vehicle_id]["ROS2"].toggle_save()
+
+
+
+            case "logging":
+
+
+                vehicle_id = message["car_ID"]
+                switch = message["ON"]
+                try:
+                    self.vehicle_configs[vehicle_id]["ROS2"].node.logging_status = switch
+                    return{"status": True}
+                except Exception as e:
+                    return{"status": False, "error": e}
+
+
+
+
+            case "activate":
+                """
+                Little complicated stuff
+                Basically I copied the first part of the vehicle_list_clicked_event
+                This way the UI will show the change of the vehicle's radio status
+                >:)
+                """
+                vehicle_id = message["car_ID"]
+
+
+                if not vehicle_id in self.vehicle_configs.keys():
+                    return {"status": False,
+                            "error": "Vehicle not found"}
+                switch = message["ON"]
+                if switch == True:
+
+                
+                    try:
+                        #If the vehicle is already running than we can skip the whole process
+                        if self.vehicle_configs[vehicle_id]["active"] == True:
+                            return{"status" : True}
+
+                        self.vehicle_configs[vehicle_id]["active"] = True
+
+                        ##Trying to start
+                        self.vehicle_configs[vehicle_id]["radio"].start()
+
+
+                        current_row = None
+
+                        for i in range(self.VEHICLE_LIST.rowCount()):
+                            if self.VEHICLE_LIST.item(i, 0).text() == vehicle_id:
+                                current_row = i
+                                break
+
+
+                        ##Changing color of the current row:
+                            
+
+                        for i in range(self.VEHICLE_LIST.columnCount()):
+                            self.VEHICLE_LIST.item(current_row, i).setBackground(Qt.GlobalColor.green)
+                
+
+                        self.VEHICLE_LIST.item(current_row, 2).setText("ON")
+                        return{"status": True}
+                    except Exception as e:
+                        self.logger.error(e)
+                        return {"status": False, "error": e}
+                else:
+                    if self.vehicle_configs[vehicle_id]["active"] == False:
+                        return{"status" : True}
+                    
+
+                    try:
+                        
+                        self.vehicle_configs[vehicle_id]["active"] = False
+               
+                        self.vehicle_configs[vehicle_id]["radio"].stop()
+
+
+                        current_row = None
+
+                        for i in range(self.VEHICLE_LIST.rowCount()):
+                            if self.VEHICLE_LIST.item(i, 0).text() == vehicle_id:
+                                current_row = i
+                                break
+
+
+                        ##Changing color of the current row:
+                            
+
+                        for i in range(self.VEHICLE_LIST.columnCount()):
+                            self.VEHICLE_LIST.item(current_row, i).setBackground(Qt.GlobalColor.red)
+                
+
+                        self.VEHICLE_LIST.item(current_row, 2).setText("OFF")
+                        return{"status": True}
+                    except Exception as e:
+                        return {"status": False, "error": e}
+            
+            case "get_state":
+                response={}
+                vehicle_id = message["car_ID"]
+
+                #Checking if vehicle is in the fleet:
+                if not vehicle_id in self.vehicle_configs.keys():
+                    response= {"status": False,
+                               "error": "Vehicle not found"}
+                    return response
+                
+                #Checking if the vehicles logging is active
+                if self.vehicle_configs[vehicle_id]["active"] == False:
+                    response = {"status": False,
+                                "error": "Vehicle not active"}
+                    return response
+                
+                #I don't use else if because of the return calling
+                
+                response["status"] = True
+                response["state"] = self.vehicle_configs[vehicle_id]["ROS2"].node.state
+                return response
+        
+        # send trajectory
+            case "upload_trajectory":
+                #recieved_trajectories.append(message["trajectory_ID"])
+                path = {"pos_tck": message["pos_tck"],
+                        "evol_tck": message["evol_tck"]}
+                traj_id = message["trajectory_ID"]
+                with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "trajectories/", traj_id + ".traj"), "wb") as file:
+                    pickle.dump(obj=path, file= file)
+
+
+
+                
+                return {"status": True}
+        
+
+            case "execute_trajectory":
+                #time.sleep(5)
+                
+                response = {"status": False, "error": "Trajectory not found!"}
+                if not message["car_ID"] in self.vehicle_configs.keys():
+                    response["error"] = "vehicle not found"
+                    return
+                
+
+
+                for i in range(self.TRAJECTORY_LIST.count()):
+                    if self.TRAJECTORY_LIST.item(i).text() == (message["trajectory_ID"]+".traj"):
+                        
+                        #saving current selection 
+                        t_v = self.selected_vehicle
+                        t_t = self.selected_trajectory
+
+
+                        self.selected_vehicle = message["car_ID"]
+                        self.selected_trajectory = message["trajectory_ID"]+".traj"
+
+                        #Calling the main_ui's execute trajectory method with the proper settings
+                        self.execute_trajectory()
+
+
+                        #Restoring original settings made by the user:
+                        self.selected_vehicle = t_v
+                        self.selected_trajectory = t_t
+
+
+                        response = {"status": True, "error": "None"}
+                        break
+                return response
+            
+            case "upload_action":
+                pass
+                #recieved_actions.append(message["action_ID"])
+                return {"status": True}
+        
+            case "execute_action": 
+                """
+                if message["action_ID"] in recieved_actions:
+                    time.sleep(10) # wait to emulate execution
+                    return {"status": True}
+                else:
+                    return {"status": False, "error": "Action not found!"}
+                """
+                pass
+            case _:
+                return {"status": False, "error": "Invalid command!"}
+        return message
+
+
+
+        
+
     def ip_check(self):
         """
         checks if the IP_ADDRESS_TEXTBOX value is set properly
@@ -298,7 +606,7 @@ class Window(QWidget):
             os.remove(os.path.join("configs", vehicle_name + ".yaml"))
             os.remove(os.path.join("configs", vehicle_name + "_login.yaml"))
         except Exception as error:
-            print("Error removing the yaml files: \n", error)
+            self.logger.warn("Error removing the yaml files: \n" +  error)
 
 
         #reseting UI to base view:
@@ -387,8 +695,8 @@ class Window(QWidget):
         current_vehicles.append(vehicle_name) ##Adding new vehicle to the fleet list
 
         ##Creating the parameter server yaml & login yaml for the new vehicle in the configs folder:
-        shutil.copy(os.path.join(os.path.dirname(__file__), "configs", "Template.yaml"), os.path.join(os.path.dirname(__file__), "configs",  vehicle_name +".yaml"))
-        shutil.copy(os.path.join(os.path.dirname(__file__), "configs", "Template_login.yaml"), os.path.join(os.path.dirname(__file__), "configs",  vehicle_name +"_login.yaml"))
+        shutil.copy(os.path.join(self.config_path, "Template.yaml"), os.path.join(self.config_path , vehicle_name +".yaml"))
+        shutil.copy(os.path.join(self.config_path,  "Template_login.yaml"), os.path.join( self.config_path,vehicle_name +"_login.yaml"))
 
 
         #Removing OK, TEXTBOX, CANCEL button from the UI
@@ -484,8 +792,8 @@ class Window(QWidget):
 
             #If the vehicle succeeded then end the log file
             vehicle_name = request.car_id
-            self.vehicle_configs[self.selected_vehicle]["logger_client"].logging_status = False
-            self.vehicle_configs[vehicle_name]["logger_client"].toggle_save()
+            self.vehicle_configs[self.selected_vehicle]["ROS2"].logging_status = False
+            self.vehicle_configs[vehicle_name]["ROS2"].toggle_save()
 
             self.PROGRESSBAR.setValue(100)
         response.received = True
@@ -495,15 +803,32 @@ class Window(QWidget):
 
     def execute_trajectory(self):
         if self.selected_vehicle == None or self.selected_trajectory == None:
-            print("Select vehicle & trajectory")
+            self.logger.error("Select vehicle & trajectory")
             return
 
-        data = np.load(os.path.join(os.path.dirname(self.config_path), "trajectories", self.TRAJECTORY_LIST.selectedItems()[0].text()))
+        #data = np.load(os.path.join(os.path.dirname(self.config_path), "trajectories", self.selected_trajectory))
+        
+        with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "trajectories", self.selected_trajectory), "rb") as file:
+            data = pickle.load(file)
+        
+        #p = Path(data)
+            
+        # We start a new log file with toggle_save (which turns logging of, see in description)
+           
+        self.vehicle_configs[self.selected_vehicle]["ROS2"].toggle_save()
 
-        p = Path(data)
-        self.vehicle_configs[self.selected_vehicle]["logger_client"].toggle_save()
-        self.vehicle_configs[self.selected_vehicle]["logger_client"].logging_status = True
-        self.vehicle_configs[self.selected_vehicle]["trajectory_client"].node.send_request(p)
+
+        #I turn logging back on before sending the trajectory on the controller
+
+        self.vehicle_configs[self.selected_vehicle]["ROS2"].logging_status = True
+
+
+
+        #The send request method is modified
+        #TODO pls. do the testing after modifying the controller
+        #Method definition in the utils/ros_classes.py
+
+        self.vehicle_configs[self.selected_vehicle]["ROS2"].node.send_request(data)
 
 
 
@@ -575,20 +900,36 @@ class Window(QWidget):
         Changes the displayed graph on the widget when new trajectory is selected from the listbox
         """
 
-
+        self.PLOT_GRAPH.plotItem.clear()
         self.selected_trajectory = self.TRAJECTORY_LIST.selectedItems()[0].text()
-
+        
 
         if self.selected_vehicle == None:
 
             self.TRAJECTORY_LABEL.setText(self.selected_trajectory+" -> <vehicle>")
         else:
             self.TRAJECTORY_LABEL.setText(self.selected_trajectory+ " -> "+ self.selected_vehicle)
+        data = None
 
 
-        data = np.load(os.path.join(os.path.dirname(self.config_path),"trajectories", self.TRAJECTORY_LIST.selectedItems()[0].text()))
+        """
+        if self.selected_trajectory.__contains__(".npy"):
+            data = np.load(os.path.join(os.path.dirname(os.path.dirname(__file__)),"trajectories", self.selected_trajectory))
+            x = data[:,0]
+            y = data[:,1]
+        """ #Let's stick to only using pickle files (.traj)
+        
+        
+        
+        if self.selected_trajectory.__contains__(".traj"):
+            file = open(os.path.join(os.path.dirname(os.path.dirname(__file__)),"trajectories", self.selected_trajectory), 'rb')
+            data = pickle.load(file) ## data has ["pos_tck"] & ["evol_tck"] items stored
 
-        self.PLOT_GRAPH.plot(data[:,0], data[:,1])
+            pos_tck = data["pos_tck"]
+            u = np.linspace(0, pos_tck[0][-1], 101)
+            (x,y) = splev(u, pos_tck)
+
+        self.PLOT_GRAPH.plot(x, y)
 
     def config_chooser(self):
         """
@@ -646,8 +987,10 @@ class Window(QWidget):
 
             #Reading trajectories from the config folder:
             l = os.listdir(os.path.join(os.path.dirname(os.path.dirname(__file__)), "trajectories"))
-            l = list(filter(lambda f: ".npy" in f, l)) #filtering file by .npy
+            #l = list(filter(lambda f: ".npy" in f or ".traj" in f, l)) #filtering file by .npy
 
+
+            l = list(filter(lambda f: ".traj" in f, l)) #We only use pickle files (.traj)
 
 
             self.TRAJECTORY_LIST.clear()
@@ -684,6 +1027,20 @@ class Window(QWidget):
         row = 0
         i = 0
         for v in vehicles:
+
+            #Creating a remote controller for every vehicle in the fleet:
+            self.vehicle_configs[v]["remote_controller"] = ControlPublisher(vehicle_name= v)
+
+            #Creating trajectory clients for every vehicle in the fleet, and starting them:
+            self.vehicle_configs[v]["ROS2"] = ROS_2_process(vehicle_name=v)
+            
+            #Setting the callback for the trajectory node to show the progress on the progressbar
+            self.vehicle_configs[v]["ROS2"].node.progress_srv =   self.vehicle_configs[v]["ROS2"].node.create_service(Feedback, v+"_vehicle_feedback",self.edit_progressbar)
+            
+            #Starting the thread:
+            self.vehicle_configs[v]["ROS2"].start()
+
+
             try:
                 obj = Radio_Worker(obj_name=v,
                                ip=self.server_ip,devid= i, 
@@ -694,31 +1051,16 @@ class Window(QWidget):
             
                 self.vehicle_configs[v]["radio"] = obj
             except Exception as e:
-                print("Error with vehicle: ", v )
-                print(e)
-                print("There is not enough Crazy dongles inserted")
+                self.logger.critical("Error with vehicle: "+ v )
+                self.logger.warn(e)
+                #self.logger.critical("There is not enough Crazy dongles inserted")
                 self.VEHICLE_LIST.setItem(row,0, QTableWidgetItem(v))
                 self.VEHICLE_LIST.item(row, 0).setFlags(QtCore.Qt.ItemIsEnabled)
                 row+= 1
                 continue
 
         
-            #Creating a remote controller for every vehicle in the fleet:
-            self.vehicle_configs[v]["remote_controller"] = ControlPublisher(vehicle_name= v)
-
-            #Creating trajectory clients for every vehicle in the fleet, and starting them:
-            self.vehicle_configs[v]["trajectory_client"] = trajectory_client_process(vehicle_name=v)
             
-            #Setting the callback for the trajectory node to show the progress on the progressbar
-            self.vehicle_configs[v]["trajectory_client"].node.progress_srv =   self.vehicle_configs[v]["trajectory_client"].node.create_service(Feedback, v+"_vehicle_feedback",self.edit_progressbar)
-            
-            #Starting the thread:
-            self.vehicle_configs[v]["trajectory_client"].start()
-
-            #Creating the logger node processess for the vehicle and starting them:
-
-            self.vehicle_configs[v]["logger_client"] = logger_node_process(vehicle_name= v)
-            #self.vehicle_configs[v]["logger_client"].start()
 
 
             #Some fancy stuff-> coloring the table and setting the texts of the cells
