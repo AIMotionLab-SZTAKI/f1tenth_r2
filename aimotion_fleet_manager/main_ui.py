@@ -159,7 +159,7 @@ class Window(QWidget):
         self.INSTALL_BUTTON = QPushButton("Install")
 
         self.PARAM_EDIT_BUTTON = QPushButton("Parameters")
-        self.RELOAD_PARAM_BUTTON = QPushButton("Reload")
+        self.RELOAD_PARAM_BUTTON = QPushButton("Load")
 
 
         self.VEHICLE_LIST =QTableWidget()
@@ -210,7 +210,7 @@ class Window(QWidget):
         self.main_layout.addWidget(self.EXUCUTE_BUTTON, 4,3)
         self.main_layout.addWidget(self.PROGRESSBAR, 5,2, 5,3)
         self.main_layout.addWidget(self.MANUAL_BUTTON, 5,0, alignment= Qt.AlignmentFlag.AlignLeft)
-        self.main_layout.addWidget(self.TOGGLE_SAVE, 3,1 )
+        #self.main_layout.addWidget(self.TOGGLE_SAVE, 3,1 )
 
         ##Connecting Widgets to functions:
 
@@ -330,6 +330,7 @@ class Window(QWidget):
                 This way the UI will show the change of the vehicle's radio status
                 >:)
                 """
+
                 vehicle_id = message["car_ID"]
 
 
@@ -949,6 +950,7 @@ class Window(QWidget):
         """
         setting new config file and loading vehicle list and vehicle parameters
         """
+        self.RELOAD_PARAM_BUTTON.setText("Reload")
 
         self.CONFIG_PATH_LABEL.setText("config path: " + self.config_path)
 
