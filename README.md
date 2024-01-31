@@ -4,7 +4,7 @@ Control and management framework for a fleet of F1TENTh vehicles. The main purpo
 
 - Low-level hardware interfaces running onboard the vehicles
 - OptiTrack motion-capture integration for indoor positioning
-- Mocap-based state estimation a
+- Mocap-based state estimation
 - Integrated trajectory-tracking control algorithms
 
 ## Documentation

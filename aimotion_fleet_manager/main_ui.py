@@ -32,7 +32,6 @@ from aimotion_fleet_manager.utils.TCP_process import TCP_Server_process
 from aimotion_fleet_manager.utils.path import Path
 from aimotion_fleet_manager.utils.ip_tool import get_ip_address
 
-from aimotion_f1tenth_utils.file_transfer.Client import tcp_file_client
 import logging
 
 import time
@@ -79,7 +78,7 @@ class Window(QWidget):
 
         self.logger.info(get_ip_address())
         self.TCP = TCP_Server_process(host= get_ip_address(),
-                                      port = 8001,
+                                      port = 8000,
                                       message_callback= self.tcp_callback)
         self.TCP.start()
         self.logger.info("TCP server started")
@@ -254,28 +253,26 @@ class Window(QWidget):
             case "get_logs":
 
                 car_ID = message["car_ID"]
-                ip_address = str(message["IP"])
 
-                file_client = tcp_file_client(ip_address)
-
-                #Getting log files
                 l = os.listdir(os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs/"))
                 l = list(filter(lambda f: car_ID in f, l)) #filtering files by vehicle_ID
                 l_1 = []
+
+                response = {"status": True, "files": []}
                 for i in l:
-                    i = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs/", i))
                     if i.__contains__("_temp"): continue
                     l_1.append(i)
-
-                file_client.sendfiles(l_1)
-                file_client.destroy()
-
-
+                    n_i = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs/", i))
+                    with open(n_i, "rb") as f:
+                        response[i] = f.read()
 
 
+                
 
+                
+                response["files"] = l_1
 
-                #return {"status": False}
+                return response
             
             case "list_trajectories":
                 response= {"status": True
