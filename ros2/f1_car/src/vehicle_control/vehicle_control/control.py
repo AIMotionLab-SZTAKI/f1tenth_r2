@@ -8,7 +8,6 @@ import math
 from trajectory_msg.srv import Trajectory, Feedback
 from rclpy.action import ActionServer
 from rclpy.node import Node
-import matplotlib.pyplot as plt
 from .submodules.control_util import BaseController
 from .submodules.combined_controller import CombinedController
 class LoaderNode(Node):

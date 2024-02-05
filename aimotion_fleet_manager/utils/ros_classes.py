@@ -215,11 +215,13 @@ class ROS2_node(Node):
         request.evol_k = path["evol_tck"][2]
 
 
-
+        """
         # We still wanna start from 0 and go till the end of path so this won't change:
         request.s_start = 0.0 
         request.s_end = path["pos_tck"][0][-1] 
+        """
 
+        
         #Sending request (same as in the old version):
 
 

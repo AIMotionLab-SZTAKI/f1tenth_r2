@@ -5,11 +5,11 @@ from vehicle_state_msgs.msg import VehicleStateStamped
 from drive_bridge_msg.msg import InputValues
 import math
 from std_srvs.srv import SetBool
-from trajectory_msg.srv import Trajectory, Feedback
+from trajectory_msg.srv import Trajectory, Feedback, EvolTrajectory
 #rom rclpy.action import ActionServer
 from rclpy.node import Node
 ##remove this imports:
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 class BaseController(Node):
     def __init__(self, FREQUENCY,car_id ):
@@ -27,7 +27,7 @@ class BaseController(Node):
         self.current_state = VehicleStateStamped()
         """
         self.current_state = VehicleStateStamped()
-        self.trajectory_srv = self.create_service(Trajectory, self.vehicle_id+"_execute_trajectory", self.execute_trajectory)
+        self.trajectory_srv = self.create_service(EvolTrajectory, self.vehicle_id+"_execute_trajectory", self.execute_trajectory)
         self.feedback_client = self.create_client(Feedback, self.vehicle_id+"_vehicle_feedback")
         ##TODO: Have to create the client to send the progress of the car car and wether the execution is successful 
     def spin(self):
@@ -73,6 +73,15 @@ class BaseController(Node):
             return True
         self.future = self.feedback_client.call_async(feedback_req) #We don't check wether the client got the progress #TODO: fix this???
         return False
+    
+
+    def get_time(self):
+        t_tuple = self.get_clock().now().seconds_nanoseconds()
+
+        time = float(t_tuple[0])+float(t_tuple[1])/10**9-self.s_time
+
+        return time
+
 
     def execute_trajectory(self, trajectory_request, response):
         
@@ -81,16 +90,34 @@ class BaseController(Node):
         path_cy=np.array(trajectory_request.path_cy)
         path_k=trajectory_request.path_k
         self.trajectory_tck=(path_t,[path_cx,path_cy],path_k)
+
+        
+        self.s_time = 0
+        self.s_time = self.get_time()
+
+        print(self.s_time)
+
+        #Old version: 
+        """
         # set reference speed profile
         speed_t=np.array(trajectory_request.speed_t)
         speed_c=np.array(trajectory_request.speed_c)
         speed_k=trajectory_request.speed_k
         self.speed_tck=(speed_t,speed_c,speed_k)
+        """
+
+        #set reference lenght profile
+
+        s_t = np.array(trajectory_request.evol_t)
+        s_c = np.array(trajectory_request.evol_c)
+        s_k = np.array(trajectory_request.evol_k)
+
+        self.evol_tck = (s_t, s_c, s_k)
 
         #set trajectory lenght
-        self.s=trajectory_request.s_start 
-        self.s_start=trajectory_request.s_start
-        self.s_end=trajectory_request.s_end
+        self.s=trajectory_request.path_t[-1] 
+        self.s_start= 0.0
+        self.s_end=trajectory_request.path_t[-1] 
         self.s_ref=self.s_start
 
 
@@ -141,6 +168,8 @@ class BaseController(Node):
             - s(float): Parameter(arc length) of the Spline representing the path
         """
         # position & derivatives
+        time = self.get_time()
+
         (x, y) = splev(s, self.trajectory_tck)
         (x_, y_) = splev(s, self.trajectory_tck, der=1)
         (x__,y__)=splev(s, self.trajectory_tck,der=2)
@@ -157,7 +186,7 @@ class BaseController(Node):
         c=abs(x__*y_-x_*y__)/((x_**2+y_**2)**(3/2))
 
         # get speed reference
-        v = splev(s, self.speed_tck)
+        v = splev(time, self.evol_tck, der = 1)
 
         return np.array([x, y]), s0, z0, v, c
 

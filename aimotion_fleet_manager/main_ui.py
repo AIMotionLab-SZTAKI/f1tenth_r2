@@ -104,6 +104,8 @@ class Window(QWidget):
         if os.path.exists(os.path.join(os.path.dirname(os.path.dirname(__file__)),"logs/")) == False:
 
             os.mkdir(os.path.join(os.path.dirname(os.path.dirname(__file__)),"logs/"))
+        else:
+            self.empty_log() ### Deleting previous logs
 
         if os.path.exists(os.path.join(os.path.dirname(os.path.dirname(__file__)), "trajectories")) == False:
             os.mkdir(os.path.join(os.path.dirname(os.path.dirname(__file__)), "trajectories"))
@@ -223,7 +225,7 @@ class Window(QWidget):
 
         self.PARAM_EDIT_BUTTON.clicked.connect(self.param_button_clicked_event)
 
-        self.RELOAD_PARAM_BUTTON.clicked.connect(self.set_config_file)
+        self.RELOAD_PARAM_BUTTON.clicked.connect(self.Load_config_file)
 
         self.EXUCUTE_BUTTON.clicked.connect(self.execute_trajectory)
         self.INSTALL_BUTTON.clicked.connect(self.install_onboard)
@@ -285,7 +287,7 @@ class Window(QWidget):
 
             
             case "reload":
-                self.set_config_file()
+                self.Load_config_file()
                 return{"status": True}
             
 
@@ -434,7 +436,7 @@ class Window(QWidget):
 
 
 
-                
+                self.Load_config_file()
                 return {"status": True}
         
 
@@ -927,6 +929,13 @@ class Window(QWidget):
             (x,y) = splev(u, pos_tck)
 
         self.PLOT_GRAPH.plot(x, y)
+    def empty_log(self):
+        """
+        Cleans the log folder of the UI
+        """
+        log_path = os.path.join(os.path.dirname(os.path.dirname(__file__)),"logs/")
+        for i in os.listdir(log_path):
+            os.remove(os.path.join(log_path, i))
 
     def config_chooser(self):
         """
@@ -941,9 +950,9 @@ class Window(QWidget):
 
         if dlg.exec_():
             self.config_path = dlg.selectedFiles()[0]
-        self.set_config_file()
+        self.Load_config_file()
     
-    def set_config_file(self):
+    def Load_config_file(self):
         """
         setting new config file and loading vehicle list and vehicle parameters
         """

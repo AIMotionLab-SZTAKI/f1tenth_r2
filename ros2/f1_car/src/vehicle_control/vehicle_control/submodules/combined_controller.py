@@ -64,7 +64,7 @@ class CombinedController(BaseController):
         response.received = True
         return response
 
-
+    
     def state_callback(self, data):
         """
         Callback function triggered by the state subscriber that calculates the control inputs of the system.
@@ -76,6 +76,11 @@ class CombinedController(BaseController):
         ### CHECK IF THE CONTROLLER IS ENABLED
         if not self.enabled:
             return
+        
+
+        ##Getting time stamp: Correct???
+        
+        time = self.get_time()
 
         ### PROCESS STATE DATA ###    
         # get velocity data
@@ -102,18 +107,19 @@ class CombinedController(BaseController):
 
         ### PROJECT ONTO PATH###
         # estimate path parameter velocity
-        s_est=self.s+abs(v_xi)*self.dt
+        #s_est=self.s+abs(v_xi)*self.dt
         
+        s_ref = splev(time, self.evol_tck)
 
         # project
-        self.s=project_to_closest(pos=position,s_est=s_est, s_window=self.projection_window,
+        self.s=project_to_closest(pos=position,s_est=s_ref, s_window=self.projection_window,
                             path=self.get_path,step=self.projection_step, s_bounds=(self.s_start,self.s_end))
 
 
         # get path data at projected reference
         ref_pos, s0, z0, v_ref, c=self.get_path_data(self.s)
 
-        if pow(position[0]-ref_pos[0],2)+ pow(position[1]-ref_pos[1],2) > pow(0.15,2):
+        if pow(position[0]-ref_pos[0],2)+ pow(position[1]-ref_pos[1],2) > pow(1,2):
             print("x error: ", position[0]-ref_pos[0], " y error: ", position[1]-ref_pos[1])
             print("self shutdown")
             self.shutdown()
@@ -136,6 +142,7 @@ class CombinedController(BaseController):
 
         # lateral error
         z1=np.dot(position-ref_pos, z0)
+        self.s_ref+=abs(v_ref)*self.dt
         """
         if z1 > 0.2:
             print("Lateral error-> self shutdown")
@@ -179,10 +186,10 @@ class CombinedController(BaseController):
         k_long1,k_long2=self.get_longitudinal_feedback_gains(p)
         #d=-k_long1*(self.s-self.s_ref)-k_long2*(v_xi-v_ref)
         if v_ref>0:
-            d=(self.C_m2*v_ref/p+self.C_m3*np.sign(v_ref))/self.C_m1-k_long1*(self.s-self.s_ref)-k_long2*(v_xi-v_ref/p)
+            d=(self.C_m2*v_ref/p+self.C_m3*np.sign(v_ref))/self.C_m1-k_long1*(self.s-s_ref)-k_long2*(v_xi-v_ref/p)
             if d<0: d=0
         else:
-            d=(self.C_m2*v_ref/p+self.C_m3*np.sign(v_ref))/self.C_m1+k_long1*(self.s-self.s_ref)-k_long2*(v_xi-v_ref/p)
+            d=(self.C_m2*v_ref/p+self.C_m3*np.sign(v_ref))/self.C_m1+k_long1*(self.s-s_ref)-k_long2*(v_xi-v_ref/p)
             if d>0: d=0
         
         # TODO: currently hard coded feedforward.. consider using parameters instead
@@ -190,11 +197,11 @@ class CombinedController(BaseController):
         ### PUBLISH INPUTS ###
         msg=InputValues()
       #  msg.d= Float64()
-        if d > 0.08:
-            d = 0.08
+        if d > 0.2:
+            d = 0.2
             print("clamped_speed")
-        if d < -0.06:
-            d = -0.06
+        if d < -0.15:
+            d = -0.15
             print("clapmed speed")
         msg.d = float(d) ##!!!!!!!!!!!!!!!!!! set d
      #   msg.delta=Float64()
@@ -203,7 +210,7 @@ class CombinedController(BaseController):
         self.pub.publish(msg)
 
         ### step reference parameters
-        self.s_ref+=abs(v_ref)*self.dt
+        #self.s_ref+=abs(v_ref)*self.dt
         
 
         #self.logfile.write(f"{data.header.stamp.to_sec()},{position[0]},{position[1]},{phi},{v_xi},{v_eta},omega,,{delta},{z1},{theta_e}\n")
