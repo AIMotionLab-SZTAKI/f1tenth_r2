@@ -13,7 +13,7 @@ from .control_util import BaseController, project_to_closest, _normalize, _clamp
 from std_msgs.msg import Float64
 
 class CombinedController(BaseController):
-    def __init__(self, FREQUENCY, lateral_gains, longitudinal_gains, projection_window, projection_step, vehicle_id,look_ahead=0):
+    def __init__(self, FREQUENCY, lateral_gains, longitudinal_gains, projection_window, projection_step, vehicle_id, vehicle_params, look_ahead=0):
         super(CombinedController, self).__init__(FREQUENCY=FREQUENCY, car_id= vehicle_id)
         
         # required params for feedback control
@@ -40,13 +40,21 @@ class CombinedController(BaseController):
 
         self.k_long1=np.poly1d(longitudinal_gains["k1"])
         self.k_long2=np.poly1d(longitudinal_gains["k2"])
-        self.m=longitudinal_gains["m"]
-        self.C_m1=longitudinal_gains["C_m1"]
-        self.C_m2=longitudinal_gains["C_m2"]
-        self.C_m3=longitudinal_gains["C_m3"]
+        #self.m=longitudinal_gains["m"]
+
 
 
         self.l_offs=.2
+
+        self.m=vehicle_params["m"]
+        self.C_f=vehicle_params["C_f"]
+        self.C_r=vehicle_params["C_r"]
+        self.l_f=vehicle_params["l_f"]
+        self.l_r=vehicle_params["l_r"]
+        self.C_m1=vehicle_params["C_m1"]
+        self.C_m2=vehicle_params["C_m2"]
+        self.C_m3=vehicle_params["C_m3"]
+
         """
         self.logfile=open(expanduser("~")+"/car1.csv", "w")
         self.logfile.write(str(self.k_long1(1))+"\n")
@@ -114,14 +122,14 @@ class CombinedController(BaseController):
         # project
         self.s=project_to_closest(pos=position,s_est=s_ref, s_window=self.projection_window,
                             path=self.get_path,step=self.projection_step, s_bounds=(self.s_start,self.s_end))
-
-
+        
+        
         # get path data at projected reference
         ref_pos, s0, z0, v_ref, c=self.get_path_data(self.s)
 
-        if pow(position[0]-ref_pos[0],2)+ pow(position[1]-ref_pos[1],2) > pow(1,2):
-            print("x error: ", position[0]-ref_pos[0], " y error: ", position[1]-ref_pos[1])
-            print("self shutdown")
+        if pow(position[0]-ref_pos[0],2)+ pow(position[1]-ref_pos[1],2) > pow(5,5):#pow(1,2):
+            #print("x error: ", position[0]-ref_pos[0], " y error: ", position[1]-ref_pos[1])
+            #print("self shutdown")
             self.shutdown()
         # invert heading in case of backward motion
         if v_ref<0:
@@ -137,12 +145,10 @@ class CombinedController(BaseController):
         # path tangent angle 
         theta_p = np.arctan2(s0[1], s0[0])
 
-        print("theta_p:{theta_p}, phi{phi}")
 
 
         # lateral error
         z1=np.dot(position-ref_pos, z0)
-        self.s_ref+=abs(v_ref)*self.dt
         """
         if z1 > 0.2:
             print("Lateral error-> self shutdown")
@@ -173,7 +179,7 @@ class CombinedController(BaseController):
         k_lat1,k_lat2,k_lat3=self.get_lateral_feedback_gains(v_xi, v_ref)
 
         if v_ref>0:
-            delta=theta_e-k_lat1*self.q-k_lat2*e-k_lat3*self.edot
+            delta=theta_e-k_lat1*self.q-k_lat2*e-k_lat3*self.edot - self.m/self.C_f*((self.l_r*self.C_r-self.l_f*self.C_f)/self.m-1)*c
 
         elif v_ref<0:
             delta=1.5*k_lat1*z1+k_lat2*theta_e#+0.33/((abs(v_xi)+0.01)*c*np.cos(theta_e)/(1-c*z1)) 
@@ -186,13 +192,12 @@ class CombinedController(BaseController):
         k_long1,k_long2=self.get_longitudinal_feedback_gains(p)
         #d=-k_long1*(self.s-self.s_ref)-k_long2*(v_xi-v_ref)
         if v_ref>0:
-            d=(self.C_m2*v_ref/p+self.C_m3*np.sign(v_ref))/self.C_m1-k_long1*(self.s-s_ref)-k_long2*(v_xi-v_ref/p)
+            d=(self.C_m2*v_ref+self.C_m3*np.sign(v_ref))/self.C_m1-k_long1*(self.s-s_ref)-k_long2*(v_xi-v_ref)
             if d<0: d=0
         else:
-            d=(self.C_m2*v_ref/p+self.C_m3*np.sign(v_ref))/self.C_m1+k_long1*(self.s-s_ref)-k_long2*(v_xi-v_ref/p)
+            d=(self.C_m2*v_ref+self.C_m3*np.sign(v_ref))/self.C_m1+k_long1*(self.s-s_ref)-k_long2*(v_xi-v_ref)
             if d>0: d=0
         
-        # TODO: currently hard coded feedforward.. consider using parameters instead
         
         ### PUBLISH INPUTS ###
         msg=InputValues()

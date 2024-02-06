@@ -27,11 +27,14 @@ class LoaderNode(Node):
                 ('controller.LATERAL_CONTROL_GAINS.k2_r',rclpy.Parameter.Type.DOUBLE_ARRAY),
                 ('controller.LONGITUDINAL_CONTROL_GAINS.k1' ,rclpy.Parameter.Type.DOUBLE_ARRAY),
                 ('controller.LONGITUDINAL_CONTROL_GAINS.k2' ,rclpy.Parameter.Type.DOUBLE_ARRAY),
-                ('controller.LONGITUDINAL_CONTROL_GAINS.m' ,rclpy.Parameter.Type.DOUBLE),
-                ('controller.LONGITUDINAL_CONTROL_GAINS.C_m1' ,rclpy.Parameter.Type.DOUBLE),
-                ('controller.LONGITUDINAL_CONTROL_GAINS.C_m2' ,rclpy.Parameter.Type.DOUBLE),
-                ('controller.LONGITUDINAL_CONTROL_GAINS.C_m3' ,rclpy.Parameter.Type.DOUBLE),
-                
+                ('controller.vehicle_params.C_m1' ,rclpy.Parameter.Type.DOUBLE),
+                ('controller.vehicle_params.C_m2' ,rclpy.Parameter.Type.DOUBLE),
+                ('controller.vehicle_params.C_m3' ,rclpy.Parameter.Type.DOUBLE),
+                ('controller.vehicle_params.m',rclpy.Parameter.Type.DOUBLE),
+                ('controller.vehicle_params.C_f' ,rclpy.Parameter.Type.DOUBLE),
+                ('controller.vehicle_params.C_r' ,rclpy.Parameter.Type.DOUBLE),
+                ('controller.vehicle_params.l_f' ,rclpy.Parameter.Type.DOUBLE),
+                ('controller.vehicle_params.l_r' ,rclpy.Parameter.Type.DOUBLE)
             ]
         )
         
@@ -49,17 +52,26 @@ def main():
         'k1_r': loader.get_parameter("controller.LATERAL_CONTROL_GAINS.k1_r").value,
         'k2_r': loader.get_parameter("controller.LATERAL_CONTROL_GAINS.k2_r").value,
     }
+
     long_gains = {
         'k1': loader.get_parameter("controller.LONGITUDINAL_CONTROL_GAINS.k1").value,
-        'k2': loader.get_parameter("controller.LONGITUDINAL_CONTROL_GAINS.k2").value,
-        'm': loader.get_parameter("controller.LONGITUDINAL_CONTROL_GAINS.m").value,
-        'C_m1': loader.get_parameter("controller.LONGITUDINAL_CONTROL_GAINS.C_m1").value,
-        'C_m2': loader.get_parameter("controller.LONGITUDINAL_CONTROL_GAINS.C_m2").value,
-        'C_m3': loader.get_parameter("controller.LONGITUDINAL_CONTROL_GAINS.C_m3").value,
+        'k2': loader.get_parameter("controller.LONGITUDINAL_CONTROL_GAINS.k2").value
+    }
+
+    vehicle_params = {
+        'm': loader.get_parameter("controller.vehicle_params.m").value,
+        'C_f': loader.get_parameter("controller.vehicle_params.C_f").value,
+        'C_r': loader.get_parameter("controller.vehicle_params.C_r").value,
+        'l_f': loader.get_parameter("controller.vehicle_params.l_f").value,
+        'l_r': loader.get_parameter("controller.vehicle_params.l_r").value,
+        'C_m1': loader.get_parameter("controller.vehicle_params.C_m1").value,
+        'C_m2': loader.get_parameter("controller.vehicle_params.C_m2").value,
+        'C_m3': loader.get_parameter("controller.vehicle_params.C_m3").value,
+
     }
     
     loader.destroy_node()
-    controller=CombinedController(FREQUENCY=freq,projection_window=0.5, lateral_gains=lat_gains,longitudinal_gains=long_gains, projection_step=0.001, vehicle_id = car_id,look_ahead=0.04)
+    controller=CombinedController(FREQUENCY=freq, projection_window=1, lateral_gains=lat_gains,longitudinal_gains=long_gains, projection_step=0.001,vehicle_params=vehicle_params, vehicle_id = car_id,look_ahead=0.04)
     rclpy.spin(controller)
 
 if __name__ == '__main__':

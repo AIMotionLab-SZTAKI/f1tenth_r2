@@ -6,7 +6,7 @@ rm -rf venv
 
 # build the ros environment
 source /opt/ros/humble/setup.bash
-echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+#echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
 
 cd ros2/f1_PC
 rm -r install
@@ -15,7 +15,7 @@ colcon build
 
 path=$(cd "$MY_PATH" && pwd)
 source $path/install/setup.bash
-echo "source $path/install/setup.bash" >> ~/.bashrc
+#echo "source $path/install/setup.bash" >> ~/.bashrc
 cd ..
 cd ..
 

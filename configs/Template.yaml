@@ -5,6 +5,15 @@ parameter_server:
     devid: 0
     controller:
       FREQUENCY: 60.0
+      vehicle_params:
+        C_f: 41.7372
+        C_r: 29.4662
+        l_f: 0.163
+        l_r: 0.168
+        C_m1: 60.0
+        C_m2: 3.0
+        C_m3: 0.6
+        m: 2.9
       LATERAL_CONTROL_GAINS:
         k1:
         - 0.00266
