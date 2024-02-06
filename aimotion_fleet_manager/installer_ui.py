@@ -43,13 +43,26 @@ class Installer_Thread(QThread):
         self.window.output_rd.append("Deleting existing workspace...")
         QApplication.processEvents()
         _stdin, stdout, stderr = SSH_client.exec_command("rm -rf aimotion-f1tenth-system") #removing previous package
-        self.window.output_rd.append("Copying workspace onto vehicle...")
-        QApplication.processEvents()
-
+       
 
 
         time.sleep(5)
         SFTP_client.mkdir("aimotion-f1tenth-system", ignore_existing=False)
+
+        ##Creating venv & instaling the necesarry stuff: 
+
+        self.window.output_rd.append("Creating venv")
+        QApplication.processEvents()
+        
+        _stdin, stdout, stderr = SSH_client.exec_command("cd aimotion-f1tenth-system; python3 -m venv venv; source venv/bin/activate; pip install numpy scipy pyyaml") #removing previous package
+        
+
+
+        ## Copying files: 
+
+        self.window.output_rd.append("Copying workspace onto vehicle...")
+        QApplication.processEvents()
+
         wd = Path(os.path.dirname(__file__))
         SFTP_client.put_dir(self.window.onboard_path, "aimotion-f1tenth-system")
        
