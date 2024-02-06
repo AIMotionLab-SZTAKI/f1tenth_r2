@@ -1074,7 +1074,15 @@ class Window(QWidget):
                 self.logger.critical("Error with vehicle: "+ v )
                 self.logger.warn(e)
                 #self.logger.critical("There is not enough Crazy dongles inserted")
+                
+                for i in range(0,3):
+                    self.VEHICLE_LIST.setItem(row,i, QTableWidgetItem(" "))
+                    self.VEHICLE_LIST.item(row, i).setBackground(Qt.GlobalColor.yellow)
+
                 self.VEHICLE_LIST.setItem(row,0, QTableWidgetItem(v))
+                self.VEHICLE_LIST.item(row, 0).setBackground(Qt.GlobalColor.yellow)
+                self.VEHICLE_LIST.item(row, 2).setText("Unavailable")
+
                 self.VEHICLE_LIST.item(row, 0).setFlags(QtCore.Qt.ItemIsEnabled)
                 row+= 1
                 continue
