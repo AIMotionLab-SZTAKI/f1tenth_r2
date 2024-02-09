@@ -18,4 +18,4 @@ fi
 IP=$(yq eval '.IP' "$yaml_file")
 Username=$(yq eval '.Username' "$yaml_file")
 
-ssh $Username@$IP "cd aimotion_f1tenth_sysem; source install/setup.bash; ros2 launch vehicle_control vehicle_launch.py"  
+ssh $Username@$IP "cd aimotion_f1tenth_system; source ./install/setup.bash; ros2 launch vehicle_control vehicle_launch.py"  

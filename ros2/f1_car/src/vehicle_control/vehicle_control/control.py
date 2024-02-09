@@ -39,7 +39,6 @@ class LoaderNode(Node):
         )
         
 def main():
-    print('Hi from vehicle_control!')
     rclpy.init()
     loader = LoaderNode()
     

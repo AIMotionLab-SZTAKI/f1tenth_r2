@@ -74,7 +74,7 @@ class CrazyObserver(Node):
         self.omega_filt=0
 
 
-            # VESC callback memory
+        # VESC callback memory
         self.d=0.0
         self.delta=0.0
         self.ERPM=0.0
@@ -93,14 +93,13 @@ class CrazyObserver(Node):
         self.setDelta,
         1
         )
-        print('Crazy_Observer initialized...')
         
     def spin(self):
         try:
             while True:
                 self.process()
         except Exception as error:
-            print(error)
+            self.get_logger().error(f"{error}")
             self.radio_receiver.close()
             return
     def process(self):
@@ -310,17 +309,17 @@ class CrazyObserver(Node):
         self.setD(data)
         self.setERPM(data)
 def main():
-    print('Hi from crazy_observer.')
     uri = uri_helper.uri_from_env(default='usb://0')
     logging.basicConfig(level=logging.ERROR)
     cflib.crtp.init_drivers()
     rclpy.init()
     le = CrazyObserver(uri, filter_window = 3)
+    le.get_logger().info("State observer node initialized!")
     t = threading.Thread(target=le.spin)
     t.start()
     t.join()
     le.radio_receiver.close()
-    print("Good bye!")
+    le.get_logger().info("Observer node shutting down!")
 
 
 if __name__ == '__main__':

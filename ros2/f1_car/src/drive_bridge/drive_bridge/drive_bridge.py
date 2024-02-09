@@ -28,9 +28,12 @@ class DriveBridge(Node):
         self.reference_limit=float(loader.get_parameter("drive_bridge.MOTOR_LIMIT").value)
         self.car_id = loader.get_parameter("car_id").value
         super().__init__(self.car_id+ '_drive_bridge')
+        
         #Create Publishers
         self.delta_pub = self.create_publisher(Float64, "commands/servo/position",1)
         self.duty_pub = self.create_publisher(Float64, "commands/motor/duty_cycle",1)
+        self.brake_pub = self.create_publisher(Float64, "commands/motor/brake",1)
+
         self.emergency_shutdown = False
         self.create_subscription(topic=self.car_id+'_control',msg_type= InputValues, callback= self.send_commands,qos_profile=1)
 
@@ -57,18 +60,21 @@ class DriveBridge(Node):
             # publish messages
             self.delta_pub.publish(self.angle_offset)
             self.duty_pub.publish(0)
+            self.brake_pub.publish(10)
 
     def shutdown(self):
         # publish messages
         self.delta_pub.publish(self.angle_offset)
         self.duty_pub.publish(0)
+        self.brake_pub.publish(10)
+        self.get_logger().info("Drive bridge sutting down!")
 
 
 def main():
-    print('Hi from drive_bridge.')
     rclpy.init()
-    car_id = "JoeBushJr"
     drive_bridge = DriveBridge()
+    drive_bridge.get_logger().info('Drive bridge initialized!')
+
     rclpy.spin(drive_bridge)
     drive_bridge.shutdown()
     drive_bridge.destroy_node()

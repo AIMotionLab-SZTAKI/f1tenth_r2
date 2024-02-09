@@ -61,10 +61,11 @@ class CombinedController(BaseController):
         
         self.logfile.write("t,x,y,phi,v_xi,v_eta,omega,d,delta,z1,theta_e,s_err,v_err\n")
         """
-        print('Combined Controller set')
+        
+        self.get_logger().info("LPV-LQR trajectory-tacking controller initialized!")
 
     def execute_trajectory(self, trajectory_request, response):
-        print("request received")
+        self.get_logger().info("Trajectory execution request recieved!")
         super(CombinedController,self).execute_trajectory(trajectory_request, response)
         self.q=0
         ##TODO get rid of this, we don't need to overwrite the inherited function
@@ -204,24 +205,15 @@ class CombinedController(BaseController):
       #  msg.d= Float64()
         if d > 0.2:
             d = 0.2
-            print("clamped_speed")
         if d < -0.15:
             d = -0.15
-            print("clapmed speed")
+            
         msg.d = float(d) ##!!!!!!!!!!!!!!!!!! set d
      #   msg.delta=Float64()
         msg.delta = float(-delta)
 
         self.pub.publish(msg)
 
-        ### step reference parameters
-        #self.s_ref+=abs(v_ref)*self.dt
-        
-
-        #self.logfile.write(f"{data.header.stamp.to_sec()},{position[0]},{position[1]},{phi},{v_xi},{v_eta},omega,,{delta},{z1},{theta_e}\n")
-        #self.logfile.write("{0},{1},{2},{3},{4}\n".format(data.header.stamp.to_sec(),rospy.Time.now().to_sec(),z1, theta_e, -delta))
-        #self.logfile.write("{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11},{12}\n".format(rospy.Time.now().to_sec(),position[0],position[1],phi,v_xi,v_eta,data.omega,d,delta,z1,theta_e,self.s-self.s_ref,v_xi-v_ref)) # Python 2.7 compatible
-        #data.header.stamp.to_sec() # -> stamp from optitrack 
     def get_lateral_feedback_gains(self, v_xi, v_ref):
         if v_ref>0:
             k1=self.k_lat1(v_xi)

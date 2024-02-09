@@ -30,23 +30,26 @@ class BaseController(Node):
         self.trajectory_srv = self.create_service(EvolTrajectory, self.vehicle_id+"_execute_trajectory", self.execute_trajectory)
         self.feedback_client = self.create_client(Feedback, self.vehicle_id+"_vehicle_feedback")
         ##TODO: Have to create the client to send the progress of the car car and wether the execution is successful 
+    
     def spin(self):
         rclpy.spin(self)
+    
     def controller_manager_callback(self, request, response):
         if request.data == True:
             self.enabled = True
             response.success = True
             response.message = "Controller turned ON"
-            print("Controller turned ON")
+            self.get_logger().info("Controller has been activated!")
         else:
             self.enabled = False
             response.success = True
             response.message = "Controller turned OFF"
-            print("Controller turned OFF")
+            self.get_logger().info("Controller has been deactivated!")
         return response
 
     def state_callback(self, data):
         self.current_state = data
+
     def check_progress(self):
         """
         Function that checks if the execution of the trajectory has been successfull
@@ -55,13 +58,12 @@ class BaseController(Node):
             - True: The trajectory has been executed successfully.
             - False: The trajectory has not been executed successfully.
         """
-        print(self.s, "/", self.s_end)
         feedback_req = Feedback.Request()
         feedback_req.progress = self.s / self.s_end*100
         feedback_req.succeeded = False
         feedback_req.car_id = self.vehicle_id #TODO !!!!!
         if abs(self.s-self.s_end)<0.01: # 5 cm deviation is enabled TODO: check this value in practice
-            print("Goal achieved")
+            self.get_logger().info("Goal achieved!")
             feedback_req.succeeded = True
             self.enabled=False
             # stop the vehicle
@@ -94,8 +96,6 @@ class BaseController(Node):
         
         self.s_time = 0
         self.s_time = self.get_time()
-
-        print(self.s_time)
 
         #Old version: 
         """
@@ -135,16 +135,16 @@ class BaseController(Node):
             current_heading=self.current_state.heading_angle
 
         if abs(np.dot(current_pos-pos, z0))>0.5 or abs(_normalize(theta_p-_normalize(current_heading)))>0.5:
-            self.get_logger().info("current_pos: {0}, {1}".format(current_pos[0],current_pos[1]))
-            self.get_logger().info("ref_pos: {0}, {1}".format(pos[0],pos[1]))
-            self.get_logger().info("heading: {0}".format(current_heading))
-            self.get_logger().info("ref heading: {0}".format(theta_p))
-            self.get_logger().info("lat_error: {0},  heading_error: {1}".format(abs(np.dot(current_pos-pos, z0)),abs(_normalize(theta_p-_normalize(current_heading)))))
+            self.get_logger().warning("Too much deviation from trajectory reference!")
+            #self.get_logger().info("current_pos: {0}, {1}".format(current_pos[0],current_pos[1]))
+            #self.get_logger().info("ref_pos: {0}, {1}".format(pos[0],pos[1]))
+            #self.get_logger().info("heading: {0}".format(current_heading))
+            #self.get_logger().info("ref heading: {0}".format(theta_p))
+            #self.get_logger().info("lat_error: {0},  heading_error: {1}".format(abs(np.dot(current_pos-pos, z0)),abs(_normalize(theta_p-_normalize(current_heading)))))
         
        
         # enable state callbacks that trigger the control
         self.enabled=True
-        print("Controller enabled")
         #When inheriting you have to return the response for the request
 
 
