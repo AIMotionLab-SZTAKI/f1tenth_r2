@@ -32,6 +32,8 @@ from aimotion_fleet_manager.utils.TCP_process import TCP_Server_process
 from aimotion_fleet_manager.utils.path import Path
 from aimotion_fleet_manager.utils.ip_tool import get_ip_address
 
+from aimotion_fleet_manager.utils.logging_formater import CustomFormatter
+
 import logging
 
 import time
@@ -52,36 +54,32 @@ class Window(QWidget):
         self.setLayout(self.main_layout)
 
 
+
+        """
+        
+        
+        """
         ##Creating logger
 
-        self.logger = logging.getLogger(__name__)
 
-        # Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+        self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
 
-        # Create a formatter
-        formatter = logging.Formatter('[%(module)s] - %(levelname)s : %(message)s')
+        # create console handler with a higher log level
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.DEBUG)
 
-        # Create a console handler and set the formatter
-        console_handler = logging.StreamHandler()
-        console_handler.setFormatter(formatter)
+        ch.setFormatter(CustomFormatter())
 
-        # Add the console handler to the logger
-        self.logger.addHandler(console_handler)
-
-
-
-
+        self.logger.addHandler(ch)
 
         
         ## Creating TCP Server:
 
-        self.logger.info(get_ip_address())
         self.TCP = TCP_Server_process(host= get_ip_address(),
                                       port = 8000,
                                       message_callback= self.tcp_callback)
         self.TCP.start()
-        self.logger.info("TCP server started")
 
         atexit.register(self.TCP.tcp_server.stop) ##Making sure that the connection is closed before ending process
         #atexit.register(self.TCP.tcp_server.server_socket.close) ##TODO not working!!!
@@ -225,10 +223,12 @@ class Window(QWidget):
 
         self.PARAM_EDIT_BUTTON.clicked.connect(self.param_button_clicked_event)
 
-        self.RELOAD_PARAM_BUTTON.clicked.connect(self.Load_config_file)
+        self.RELOAD_PARAM_BUTTON.clicked.connect(self.load_config_file)
 
         self.EXUCUTE_BUTTON.clicked.connect(self.execute_trajectory)
+
         self.INSTALL_BUTTON.clicked.connect(self.install_onboard)
+
         self.ADD_VEHICLE_BUTTON.clicked.connect(self.add_new_vehicle)
         
         self.REMOVE_VEHICLE_BUTTON.clicked.connect(self.remove_vehicle)
@@ -287,7 +287,7 @@ class Window(QWidget):
 
             
             case "reload":
-                self.Load_config_file()
+                self.load_config_file()
                 return{"status": True}
             
 
@@ -302,8 +302,6 @@ class Window(QWidget):
 
                 vehicle_id = message["car_ID"]
 
-                self.vehicle_configs[vehicle_id]["ROS2"].logging_status = False
-
                 self.vehicle_configs[vehicle_id]["ROS2"].toggle_save()
 
 
@@ -314,7 +312,7 @@ class Window(QWidget):
                 vehicle_id = message["car_ID"]
                 switch = message["ON"]
                 try:
-                    self.vehicle_configs[vehicle_id]["ROS2"].node.logging_status = switch
+                    self.vehicle_configs[vehicle_id]["ROS2"].set_logging_status(switch)
                     return{"status": True}
                 except Exception as e:
                     return{"status": False, "error": e}
@@ -436,7 +434,7 @@ class Window(QWidget):
 
 
 
-                self.Load_config_file()
+                self.load_config_file()
                 return {"status": True}
         
 
@@ -791,7 +789,6 @@ class Window(QWidget):
 
             #If the vehicle succeeded then end the log file
             vehicle_name = request.car_id
-            self.vehicle_configs[self.selected_vehicle]["ROS2"].logging_status = False
             self.vehicle_configs[vehicle_name]["ROS2"].toggle_save()
 
             self.PROGRESSBAR.setValue(100)
@@ -815,11 +812,11 @@ class Window(QWidget):
         # We start a new log file with toggle_save (which turns logging of, see in description)
            
         self.vehicle_configs[self.selected_vehicle]["ROS2"].toggle_save()
-
+        
 
         #I turn logging back on before sending the trajectory on the controller
 
-        self.vehicle_configs[self.selected_vehicle]["ROS2"].logging_status = True
+        self.vehicle_configs[self.selected_vehicle]["ROS2"].set_logging_status(True)
 
 
 
@@ -832,6 +829,9 @@ class Window(QWidget):
 
 
     def param_button_clicked_event(self):
+        """
+        This method opens the config files in a text editor (Only working in linux)
+        """
         if self.selected_vehicle != None:
             
             subprocess.Popen(['xdg-open', os.path.join(self.config_path,self.selected_vehicle + ".yaml")])
@@ -851,13 +851,19 @@ class Window(QWidget):
         v = self.VEHICLE_LIST.item(self.VEHICLE_LIST.currentRow(),0).text() #Temp
         
         if self.VEHICLE_LIST.currentColumn() == 2:
-
+            if self.vehicle_configs[v]["radio"] == None:
+                self.logger.critical("No Crazyradio connection, failed to start radio broadcast for vehicle:{0}".format(v))
+                return
             if self.vehicle_configs[v]["active"] == False:
 
                 self.vehicle_configs[v]["active"] = True
                
                 ##Trying to start
-                self.vehicle_configs[v]["radio"].start() 
+                try:
+                    self.vehicle_configs[v]["radio"].start() 
+                except Exception as e:
+                    self.logger.critical("Error during starting radio for: {0}".format(v))
+                    self.logger.error(e)
 
                 ##Changing color of the current row:
                 for i in range(self.VEHICLE_LIST.columnCount()):
@@ -910,15 +916,6 @@ class Window(QWidget):
             self.TRAJECTORY_LABEL.setText(self.selected_trajectory+ " -> "+ self.selected_vehicle)
         data = None
 
-
-        """
-        if self.selected_trajectory.__contains__(".npy"):
-            data = np.load(os.path.join(os.path.dirname(os.path.dirname(__file__)),"trajectories", self.selected_trajectory))
-            x = data[:,0]
-            y = data[:,1]
-        """ #Let's stick to only using pickle files (.traj)
-        
-        
         
         if self.selected_trajectory.__contains__(".traj"):
             file = open(os.path.join(os.path.dirname(os.path.dirname(__file__)),"trajectories", self.selected_trajectory), 'rb')
@@ -950,9 +947,9 @@ class Window(QWidget):
 
         if dlg.exec_():
             self.config_path = dlg.selectedFiles()[0]
-        self.Load_config_file()
+        self.load_config_file()
     
-    def Load_config_file(self):
+    def load_config_file(self):
         """
         setting new config file and loading vehicle list and vehicle parameters
         """
@@ -1018,7 +1015,7 @@ class Window(QWidget):
 
             for t in l:
                 self.TRAJECTORY_LIST.addItem(QListWidgetItem(t)) #Reloading the listbox
-                
+            self.logger.info("Config file loaded successfuly ")
         except:
             raise FileNotFoundError("The folder must contain a param.yaml file and <vehicle_name>.yaml")
         
@@ -1075,9 +1072,11 @@ class Window(QWidget):
                 self.logger.warn(e)
                 #self.logger.critical("There is not enough Crazy dongles inserted")
                 
-                for i in range(0,3):
+                for i in range(1,3):
                     self.VEHICLE_LIST.setItem(row,i, QTableWidgetItem(" "))
                     self.VEHICLE_LIST.item(row, i).setBackground(Qt.GlobalColor.yellow)
+                    self.VEHICLE_LIST.item(row, i).setFlags(QtCore.Qt.ItemIsEnabled)
+
 
                 self.VEHICLE_LIST.setItem(row,0, QTableWidgetItem(v))
                 self.VEHICLE_LIST.item(row, 0).setBackground(Qt.GlobalColor.yellow)
@@ -1102,6 +1101,9 @@ class Window(QWidget):
             i+=1
 
 def main():
+    """
+    Creates an instance of the Window class, and shows it
+    """
     app = QApplication(sys.argv)
 
     window = Window()

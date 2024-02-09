@@ -1,18 +1,22 @@
-from trajectory_msg.srv import Trajectory, EvolTrajectory
+from trajectory_msg.srv import  EvolTrajectory
 from vehicle_state_msgs.msg import VehicleStateStamped
 from datetime import datetime #log file is saved by time
 from rclpy.node import Node
-from PyQt5.QtCore import  QObject, QThread
+from PyQt5.QtCore import  QThread
 import rclpy
 import csv #used for logging
 import os
 import atexit
-import numpy as np
 from scipy.interpolate import splev, splint
 
 from rclpy.executors import SingleThreadedExecutor
 
 from pathlib import Path
+
+import logging
+
+from aimotion_fleet_manager.utils.logging_formater import CustomFormatter
+
 class ROS_2_process(QThread):
     """
     Provides start() func to run async the rclpy.spin for a trajectory_node instance
@@ -28,9 +32,38 @@ class ROS_2_process(QThread):
         
         self.executor.add_node(self.node)
 
+        self.vehicle_name = vehicle_name
+
+        ##Creating logger
+
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.DEBUG)
+
+        # create console handler with a higher log level
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.DEBUG)
+
+        ch.setFormatter(CustomFormatter())
+
+        self.logger.addHandler(ch)
+
+
+    def set_logging_status(self, status: bool):
+        """
+        Sets logging_status variable for the Node
+        Args:
+        - status: bool
+        """
+
+
+        self.node.logging_status = status
+        self.logger.info("Logging status of vehicle: {0} is set to: {1}".format(self.vehicle_name, status))
+
 
     def toggle_save(self):
         self.node.toggle_save()
+        
+        self.logger.info("Log file of vehicle: {0} is saved".format(self.vehicle_name))
 
     def stop(self):
         self.executor.shutdown()
@@ -94,8 +127,6 @@ class ROS2_node(Node):
         self.fieldnames = ['time_stamp_sec', 'position_x', 'position_y', 'heading_angle', 'velocity_x', 'velocity_y', 'omega', 'duty_cycle', 'delta', 'erpm']
         
         
-        now = datetime.now() # current date and time
-
         self.csv_file =  open(str(Path(__file__).parents[2])+"/logs/_temp_"+ vehicle_name +'.csv', mode='w') #opening the temporary file
         
 
@@ -185,19 +216,6 @@ class ROS2_node(Node):
             request.path_cy.append(float(path["pos_tck"][1][1][i]))
         request.path_k = path["pos_tck"][2]
 
-        #Here is the old version:
-        """
-        request.speed_t = []
-        #print(path.speed_tck)
-        for i in range(len(path.speed_tck[0])):
-            request.speed_t.append(float(path.speed_tck[0][i]))
-        request.speed_c = []
-        for i in range(len(path.speed_tck[1])):
-            request.speed_c.append(float(path.speed_tck[1][i]))
-        request.speed_k = path.speed_tck[2]
-        request.s_start = 0.0
-        request.s_end = float(path.length)
-        """
 
         #Here comes the new version:
 
@@ -215,11 +233,7 @@ class ROS2_node(Node):
         request.evol_k = path["evol_tck"][2]
 
 
-        """
-        # We still wanna start from 0 and go till the end of path so this won't change:
-        request.s_start = 0.0 
-        request.s_end = path["pos_tck"][0][-1] 
-        """
+        # We still wanna start from 0 and go till the end of path so this won't change: This is calculated on the car :)
 
         
         #Sending request (same as in the old version):
@@ -234,7 +248,10 @@ class ROS2_node(Node):
 
 
 
-        #rclpy.spin_until_future_complete(self, self.future) #I don't wanna wait till the response, it would freeze the UI
+        #rclpy.spin_until_future_complete(self, self.future) #I don't wanna wait till the response, it would freeze the GUI
+            
         #print(self.future.result().received)
+            
+
         except Exception as error :
             print(error)
