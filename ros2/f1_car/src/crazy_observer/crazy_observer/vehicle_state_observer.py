@@ -308,6 +308,7 @@ class CrazyObserver(Node):
     def setData(self, data):
         self.setD(data)
         self.setERPM(data)
+        
 def main():
     uri = uri_helper.uri_from_env(default='usb://0')
     logging.basicConfig(level=logging.ERROR)
