@@ -159,10 +159,10 @@ class BaseController(Node):
             - s(float): Path parameter/arc length
         """
         s=np.clip(s, self.s_start, self.s_end)
-        #try:
-        #    (x, y) = splev(s, self.trajectory_tck)
-        #except: # Handle invalid input exceptions by clipping!
-        (x,y) = splev(s, self.trajectory_tck)
+        try:
+            (x, y) = splev(s, self.trajectory_tck)
+        except: # Handle invalid input exceptions by clipping!
+            (x, y) = splev(self.s_end, self.trajectory_tck)
 
         return np.array([x,y])
 
