@@ -39,6 +39,8 @@ import logging
 import time
 import atexit
 
+from types import SimpleNamespace  
+
 class Window(QWidget):
 
     def __init__(self):
@@ -124,6 +126,13 @@ class Window(QWidget):
         self.timer.timeout.connect(self.emit_controler)
 
         ##Widget declaration:
+
+        self.EMERGECY_SHUTDOWN_BUTTON = QPushButton("FORCE STOP")
+        
+        self.EMERGECY_SHUTDOWN_BUTTON.setStyleSheet("background-color: red")
+
+        self.EMERGECY_SHUTDOWN_BUTTON.setFixedHeight(50)
+
         self.CONFIG_PATH_LABEL = QLabel("config path: " + self.config_path)
 
         self.CHANGE_CONFIG_PATH_BUTTON = QPushButton("Change")
@@ -206,12 +215,15 @@ class Window(QWidget):
         self.main_layout.addWidget(self.ADD_VEHICLE_BUTTON, 4,0, alignment= QtCore.Qt.AlignmentFlag.AlignLeading)
         self.main_layout.addWidget(self.REMOVE_VEHICLE_BUTTON, 4,0, alignment= QtCore.Qt.AlignmentFlag.AlignTrailing)
         self.main_layout.addWidget(self.INSTALL_BUTTON, 2,1, 2,1, alignment= Qt.AlignmentFlag.AlignCenter)
+        self.main_layout.addWidget(self.EMERGECY_SHUTDOWN_BUTTON, 2,1, alignment= Qt.AlignmentFlag.AlignBottom)
         self.main_layout.addWidget(self.TRAJECTORY_LIST, 0,2, 1,3)
         self.main_layout.addWidget(self.PLOT_GRAPH, 1,2, 2, 3, Qt.AlignmentFlag.AlignCenter)
         self.main_layout.addWidget(self.TRAJECTORY_LABEL, 4,2)
         self.main_layout.addWidget(self.EXECUTE_BUTTON, 4,3)
         self.main_layout.addWidget(self.PROGRESSBAR, 5,2, 5,3)
         self.main_layout.addWidget(self.MANUAL_BUTTON, 5,0, alignment= Qt.AlignmentFlag.AlignLeft)
+
+
         #self.main_layout.addWidget(self.TOGGLE_SAVE, 3,1 )
 
         ##Connecting Widgets to functions:
@@ -240,10 +252,21 @@ class Window(QWidget):
 
         self.IP_ADDRESS_TEXTBOX.textChanged.connect(self.ip_check)
         
-        
+        self.EMERGECY_SHUTDOWN_BUTTON.clicked.connect(self.controller_call_off)
         ##Loading files:
         #self.set_config_file() # This must be here because the function modifies the label text :(
         
+    
+    def controller_call_off(self):
+       
+        for v in self.vehicle_configs.keys():
+
+            vehicle_data = self.vehicle_configs[v]["ROS2"]
+            if self.vehicle_configs[v]["ROS2"] == None:
+                continue
+            self.vehicle_configs[v]["ROS2"].node.controller_switch(False)
+            self.logger.info("{0} force shutdown called".format(self.vehicle_configs[v]["ROS2"].vehicle_name))
+            
 
     def toggle_save(self):
         if self.selected_vehicle == None:

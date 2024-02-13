@@ -4,6 +4,7 @@ from datetime import datetime #log file is saved by time
 from rclpy.node import Node
 from PyQt5.QtCore import  QThread
 import rclpy
+from std_srvs.srv import SetBool
 import csv #used for logging
 import os
 import atexit
@@ -90,6 +91,10 @@ class ROS2_node(Node):
 
         self.trajectory_client = self.create_client(EvolTrajectory, vehicle_name+'_execute_trajectory') #CHANGE!!!! New service message type (old: Trajectory.srv<-> new: EvolTrajectory.srv) 
         
+        self.controller_manager =  self.create_client(SetBool, vehicle_name+ "_controller_switch")
+
+
+
         #See new message type in the ros2/f1_PC/trajectory_msg/srv
         #I didn't delete the old msg type just in case
 
@@ -143,6 +148,14 @@ class ROS2_node(Node):
         'duty_cycle': None,
         'delta': None,
         'erpm': None,}
+
+    def controller_switch(self, mode: bool):
+
+        message = SetBool.Request()
+        message.data = mode
+        #print("Waiting for service....")
+        #self.client.wait_for_service()
+        self.future = self.controller_manager.call_async(message)
 
     def destroy(self):
         try:
