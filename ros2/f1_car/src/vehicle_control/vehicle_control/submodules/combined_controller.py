@@ -128,6 +128,10 @@ class CombinedController(BaseController):
         # get path data at projected reference
         ref_pos, s0, z0, v_ref, c=self.get_path_data(self.s)
 
+
+        if self.reversed:
+            v_ref=-v_ref
+
         if pow(position[0]-ref_pos[0],2)+ pow(position[1]-ref_pos[1],2) > pow(5,5):#pow(1,2):
             #print("x error: ", position[0]-ref_pos[0], " y error: ", position[1]-ref_pos[1])
             #print("self shutdown")

@@ -139,11 +139,11 @@ class BaseController(Node):
 
         if abs(np.dot(current_pos-pos, z0))>0.5 or abs(_normalize(theta_p-_normalize(current_heading)))>0.5:
             self.get_logger().warning("Too much deviation from trajectory reference!")
-            #self.get_logger().info("current_pos: {0}, {1}".format(current_pos[0],current_pos[1]))
-            #self.get_logger().info("ref_pos: {0}, {1}".format(pos[0],pos[1]))
-            #self.get_logger().info("heading: {0}".format(current_heading))
-            #self.get_logger().info("ref heading: {0}".format(theta_p))
-            #self.get_logger().info("lat_error: {0},  heading_error: {1}".format(abs(np.dot(current_pos-pos, z0)),abs(_normalize(theta_p-_normalize(current_heading)))))
+            self.get_logger().info("current_pos: {0}, {1}".format(current_pos[0],current_pos[1]))
+            self.get_logger().info("ref_pos: {0}, {1}".format(pos[0],pos[1]))
+            self.get_logger().info("heading: {0}".format(current_heading))
+            self.get_logger().info("ref heading: {0}".format(theta_p))
+            self.get_logger().info("lat_error: {0},  heading_error: {1}".format(abs(np.dot(current_pos-pos, z0)),abs(_normalize(theta_p-_normalize(current_heading)))))
         
        
         # enable state callbacks that trigger the control
@@ -158,16 +158,12 @@ class BaseController(Node):
         Arguments:
             - s(float): Path parameter/arc length
         """
+        s=np.clip(s, self.s_start, self.s_end)
+        #try:
+        #    (x, y) = splev(s, self.trajectory_tck)
+        #except: # Handle invalid input exceptions by clipping!
+        (x,y) = splev(s, self.trajectory_tck)
 
-        try:
-            (x, y) = splev(s, self.trajectory_tck)
-        except: # Handle invalid input exceptions by clipping!
-            
-            if s>= self.s_end:
-                (x,y) = splev(self.s_end, self.trajectory_tck)
-            elif s<= self.s_start:
-                (x,y) = splev(self.s_end, self.trajectory_tck)
-        
         return np.array([x,y])
 
 
