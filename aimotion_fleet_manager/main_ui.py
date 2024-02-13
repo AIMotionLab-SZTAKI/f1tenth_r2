@@ -302,6 +302,22 @@ class Window(QWidget):
 
                 return response
             
+
+            case "get_progress":
+                vehicle_name = message["car_ID"]
+
+                response = {"status" : False}
+                try:
+                    c_progress = self.vehicle_configs[vehicle_name]["ROS2"].progress
+                    response["progress"] = c_progress
+                    response["status"] = True
+
+                except:
+                    response["status"] = False
+
+                return response
+            
+            
             case "list_trajectories":
                 response= {"status": True
                     ,"trajectories": list()}
