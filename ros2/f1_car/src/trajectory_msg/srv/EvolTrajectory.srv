@@ -2,7 +2,7 @@ float64[] path_t
 float64[] path_cx
 float64[] path_cy
 int32 path_k
-
+bool reversed
 
 float64[] evol_t
 float64[] evol_c

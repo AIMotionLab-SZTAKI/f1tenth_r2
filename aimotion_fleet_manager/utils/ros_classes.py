@@ -229,7 +229,7 @@ class ROS2_node(Node):
             request.path_cy.append(float(path["pos_tck"][1][1][i]))
         request.path_k = path["pos_tck"][2]
 
-
+        
         #Here comes the new version:
 
 
@@ -244,6 +244,8 @@ class ROS2_node(Node):
             request.evol_c.append(float(path["evol_tck"][1][i]))
         
         request.evol_k = path["evol_tck"][2]
+
+        request.reversed = path["reversed"] #This shows the vehicle if the trajectory is reversed
 
 
         # We still wanna start from 0 and go till the end of path so this won't change: This is calculated on the car :)

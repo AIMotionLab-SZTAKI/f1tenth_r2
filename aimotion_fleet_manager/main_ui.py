@@ -453,7 +453,8 @@ class Window(QWidget):
             case "upload_trajectory":
                 #recieved_trajectories.append(message["trajectory_ID"])
                 path = {"pos_tck": message["pos_tck"],
-                        "evol_tck": message["evol_tck"]}
+                        "evol_tck": message["evol_tck"],
+                        "reversed": message["reversed"]}
                 traj_id = message["trajectory_ID"]
                 with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "trajectories/", traj_id + ".traj"), "wb") as file:
                     pickle.dump(obj=path, file= file)

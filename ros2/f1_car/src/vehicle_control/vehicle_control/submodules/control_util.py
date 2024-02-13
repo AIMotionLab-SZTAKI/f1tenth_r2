@@ -30,7 +30,9 @@ class BaseController(Node):
         self.trajectory_srv = self.create_service(EvolTrajectory, self.vehicle_id+"_execute_trajectory", self.execute_trajectory)
         self.feedback_client = self.create_client(Feedback, self.vehicle_id+"_vehicle_feedback")
         ##TODO: Have to create the client to send the progress of the car car and wether the execution is successful 
-    
+        self.reversed  = None
+
+
     def spin(self):
         rclpy.spin(self)
     
@@ -93,6 +95,7 @@ class BaseController(Node):
         path_k=trajectory_request.path_k
         self.trajectory_tck=(path_t,[path_cx,path_cy],path_k)
 
+        self.reversed = trajectory_request.reversed
         
         self.s_time = 0
         self.s_time = self.get_time()
