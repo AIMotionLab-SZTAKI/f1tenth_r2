@@ -134,8 +134,11 @@ class Window(QWidget):
 
         self.PLOT_GRAPH = pg.PlotWidget()
 
-        self.EXUCUTE_BUTTON = QPushButton("Execute")
-        self.EXUCUTE_BUTTON.setMaximumWidth(150)
+        self.EXECUTE_BUTTON = QPushButton("Execute")
+        self.EXECUTE_BUTTON.setMaximumWidth(150)
+
+        self.EXECUTE_BUTTON.setDisabled(True)
+
         
         self.ADD_VEHICLE_BUTTON = QPushButton("Add")
         self.ADD_VEHICLE_BUTTON.setMaximumWidth(80)
@@ -206,7 +209,7 @@ class Window(QWidget):
         self.main_layout.addWidget(self.TRAJECTORY_LIST, 0,2, 1,3)
         self.main_layout.addWidget(self.PLOT_GRAPH, 1,2, 2, 3, Qt.AlignmentFlag.AlignCenter)
         self.main_layout.addWidget(self.TRAJECTORY_LABEL, 4,2)
-        self.main_layout.addWidget(self.EXUCUTE_BUTTON, 4,3)
+        self.main_layout.addWidget(self.EXECUTE_BUTTON, 4,3)
         self.main_layout.addWidget(self.PROGRESSBAR, 5,2, 5,3)
         self.main_layout.addWidget(self.MANUAL_BUTTON, 5,0, alignment= Qt.AlignmentFlag.AlignLeft)
         #self.main_layout.addWidget(self.TOGGLE_SAVE, 3,1 )
@@ -225,7 +228,7 @@ class Window(QWidget):
 
         self.RELOAD_PARAM_BUTTON.clicked.connect(self.load_config_file)
 
-        self.EXUCUTE_BUTTON.clicked.connect(self.execute_trajectory)
+        self.EXECUTE_BUTTON.clicked.connect(self.execute_trajectory)
 
         self.INSTALL_BUTTON.clicked.connect(self.install_onboard)
 
@@ -525,7 +528,7 @@ class Window(QWidget):
             self.manual_enabled = False
             self.MANUAL_BUTTON.setStyleSheet("background-color: red")
             
-            self.EXUCUTE_BUTTON.setEnabled(True)
+            self.EXECUTE_BUTTON.setEnabled(True)
                
 
             self.controller_window.close()
@@ -533,7 +536,7 @@ class Window(QWidget):
             
         else:
             
-            self.EXUCUTE_BUTTON.setDisabled(True)
+            self.EXECUTE_BUTTON.setDisabled(True)
             self.controller_window.show()
             self.manual_enabled = True
             self.MANUAL_BUTTON.setStyleSheet("background-color: green")
@@ -871,6 +874,15 @@ class Window(QWidget):
                 
 
                 self.VEHICLE_LIST.item(self.VEHICLE_LIST.currentRow(), 2).setText("ON")
+
+
+                ##Execute button setting to Enabled
+
+                if self.selected_vehicle == v and self.selected_trajectory != None:
+                    self.EXECUTE_BUTTON.setDisabled(False)
+
+
+
             
             else:
 
@@ -884,6 +896,9 @@ class Window(QWidget):
                 self.VEHICLE_LIST.item(self.VEHICLE_LIST.currentRow(), 2).setText("OFF")
                 #TODO
 
+                 ##Execute button setting to Disabled
+                if self.selected_vehicle == v:
+                    self.EXECUTE_BUTTON.setDisabled(True)
 
             return
         
@@ -900,6 +915,13 @@ class Window(QWidget):
         else:
             self.TRAJECTORY_LABEL.setText( self.selected_trajectory+ " -> " + self.selected_vehicle)
 
+
+        if self.vehicle_configs[self.selected_vehicle]["active"] == True and self.selected_trajectory != None:
+            self.EXECUTE_BUTTON.setEnabled(True)
+        else:
+            self.EXECUTE_BUTTON.setDisabled(True)
+
+
     def plot_trajectory(self):
         """
         Changes the displayed graph on the widget when new trajectory is selected from the listbox
@@ -914,6 +936,11 @@ class Window(QWidget):
             self.TRAJECTORY_LABEL.setText(self.selected_trajectory+" -> <vehicle>")
         else:
             self.TRAJECTORY_LABEL.setText(self.selected_trajectory+ " -> "+ self.selected_vehicle)
+
+            if self.vehicle_configs[self.selected_vehicle]["active"] == True:
+                self.EXECUTE_BUTTON.setDisabled(False)
+
+
         data = None
 
         
@@ -926,6 +953,8 @@ class Window(QWidget):
             (x,y) = splev(u, pos_tck)
 
         self.PLOT_GRAPH.plot(x, y)
+
+
     def empty_log(self):
         """
         Cleans the log folder of the UI
