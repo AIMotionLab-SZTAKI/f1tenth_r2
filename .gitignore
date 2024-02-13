@@ -6,3 +6,4 @@ venv/
 logs/
 trajectories/
 .vscode/
+.DS_Store
