@@ -830,17 +830,30 @@ class Window(QWidget):
 
         
 
-
+       
         self.PROGRESSBAR.setValue(int(request.progress))
-        self.vehicle_configs[vehicle_name]["ROS2"].progress = int(request.progress)
+
+        vehicle_name = request.car_id
+
+        if vehicle_name in self.vehicle_configs.keys():
+            self.vehicle_configs[vehicle_name]["ROS2"].progress = int(request.progress)
+
+        self.logger.info(request.progress)
+        print((request.progress))
 
         if request.succeeded == True:
 
             #If the vehicle succeeded then end the log file
-            vehicle_name = request.car_id
+            
             self.vehicle_configs[vehicle_name]["ROS2"].toggle_save()
 
             self.PROGRESSBAR.setValue(100)
+            self.vehicle_configs[vehicle_name]["ROS2"].progress = int(100)
+
+
+        self.logger.info("end")
+
+
         response.received = True
         return response
         
@@ -1129,6 +1142,7 @@ class Window(QWidget):
             #Setting the callback for the trajectory node to show the progress on the progressbar
             self.vehicle_configs[v]["ROS2"].node.progress_srv =   self.vehicle_configs[v]["ROS2"].node.create_service(Feedback, v+"_vehicle_feedback",self.edit_progressbar)
             
+            self.logger.debug("Service created")
             #Starting the thread:
             self.vehicle_configs[v]["ROS2"].start()
 

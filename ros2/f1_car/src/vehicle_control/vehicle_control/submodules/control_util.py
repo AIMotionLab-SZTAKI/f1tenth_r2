@@ -64,7 +64,8 @@ class BaseController(Node):
         feedback_req.progress = self.s / self.s_end*100
         feedback_req.succeeded = False
         feedback_req.car_id = self.vehicle_id #TODO !!!!!
-        if abs(self.s-self.s_end)<0.01: # 5 cm deviation is enabled TODO: check this value in practice
+        #print("Progress: {0}".format(feedback_req.progress))
+        if abs(self.s-self.s_end)<0.05: # 5 cm deviation is enabled TODO: check this value in practice
             self.get_logger().info("Goal achieved!")
             feedback_req.succeeded = True
             self.enabled=False
@@ -73,6 +74,7 @@ class BaseController(Node):
             msg.d=0.0
             msg.delta=0.0
             self.pub.publish(msg)
+            self.shutdown()
             self.future = self.feedback_client.call_async(feedback_req) #We don't check wether the client got the progress #TODO: fix this???
             return True
         self.future = self.feedback_client.call_async(feedback_req) #We don't check wether the client got the progress #TODO: fix this???
@@ -118,7 +120,7 @@ class BaseController(Node):
         self.evol_tck = (s_t, s_c, s_k)
 
         #set trajectory lenght
-        self.s=trajectory_request.path_t[-1] 
+        self.s=0.0
         self.s_start= 0.0
         self.s_end=trajectory_request.path_t[-1] 
         self.s_ref=self.s_start
@@ -159,10 +161,12 @@ class BaseController(Node):
             - s(float): Path parameter/arc length
         """
         s=np.clip(s, self.s_start, self.s_end)
+        ##print("value of s: {0} m".format(s))
         try:
             (x, y) = splev(s, self.trajectory_tck)
         except: # Handle invalid input exceptions by clipping!
             (x, y) = splev(self.s_end, self.trajectory_tck)
+            ##print("Error")
 
         return np.array([x,y])
 
