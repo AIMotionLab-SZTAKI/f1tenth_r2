@@ -832,6 +832,8 @@ class Window(QWidget):
 
 
         self.PROGRESSBAR.setValue(int(request.progress))
+        self.vehicle_configs[vehicle_name]["ROS2"].progress = int(request.progress)
+
         if request.succeeded == True:
 
             #If the vehicle succeeded then end the log file

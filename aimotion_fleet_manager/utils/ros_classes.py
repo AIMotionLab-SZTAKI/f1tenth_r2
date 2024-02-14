@@ -49,6 +49,9 @@ class ROS_2_process(QThread):
         self.logger.addHandler(ch)
 
 
+        self.progress = 0
+
+
     def set_logging_status(self, status: bool):
         """
         Sets logging_status variable for the Node
@@ -103,7 +106,6 @@ class ROS2_node(Node):
         
         self.vehicle_name = vehicle_name
         
-
 
         #Creating the subscribtion on the vehicle's state node
 
