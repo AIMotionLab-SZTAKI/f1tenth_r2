@@ -343,10 +343,14 @@ class Window(QWidget):
             case "new_log":
 
                 vehicle_id = message["car_ID"]
+                response = {"status": False}
+                try:
+                    self.vehicle_configs[vehicle_id]["ROS2"].toggle_save()
+                    response["status"] = True
+                except Exception as e:
+                    response["error"] = e
 
-                self.vehicle_configs[vehicle_id]["ROS2"].toggle_save()
-
-
+                return response
 
             case "logging":
 
