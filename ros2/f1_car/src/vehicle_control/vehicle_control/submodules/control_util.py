@@ -65,7 +65,7 @@ class BaseController(Node):
         feedback_req.succeeded = False
         feedback_req.car_id = self.vehicle_id #TODO !!!!!
         #print("Progress: {0}".format(feedback_req.progress))
-        if abs(self.s-self.s_end)<0.05: # 5 cm deviation is enabled TODO: check this value in practice
+        if abs(self.s-self.s_end)<0.05 or self.s > self.s_end: # 5 cm deviation is enabled TODO: check this value in practice
             self.get_logger().info("Goal achieved!")
             feedback_req.succeeded = True
             self.enabled=False
